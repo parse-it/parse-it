@@ -6,7 +6,6 @@ export function peggyPlugin(): EsbuildPlugin {
   return {
     name: "esbuild-peggy-plugin",
     setup(build) {
-      console.log("grammar");
 
       build.onLoad({ filter: /\.pegjs$/ }, async (args) => {
         const grammar = await fs.readFile(args.path, "utf8");
