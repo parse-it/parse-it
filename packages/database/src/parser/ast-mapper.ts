@@ -12,7 +12,6 @@ import {
 import { expressionHandlers } from "./expression.handler";
 
 export class ASTMapper {
- 
   map(parsedAST: any): QueryNode {
     const { ast } = parsedAST;
     // Handle array-based AST
@@ -131,9 +130,10 @@ export class ASTMapper {
         };
 
       case "function":
-        const functionName = Array.isArray(expr.name?.name)
-          ? expr.name.name.map((n: any) => n.value).join(".")
-          : expr.name?.value || "UNKNOWN_FUNCTION";
+        const functionName =
+          Array.isArray(expr.name?.name) && expr.name?.length > 0
+            ? expr.name.name.map((n: any) => n.value).join(".")
+            : expr.name?.value || expr.name?.schema.value || "UNKNOWN_FUNCTION";
 
         const functionArgs =
           expr.args?.type === "expr_list" && Array.isArray(expr.args.value)
@@ -215,6 +215,7 @@ export class ASTMapper {
       case "single_quote_string":
       case "null":
       case "number":
+      case "string":
         return {
           type: "expression",
           left: expr.value,

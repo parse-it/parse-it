@@ -17,9 +17,10 @@ export const expressionHandlers: Record<
   }),
 
   function: (expr, mapExpression) => {
-    const functionName = Array.isArray(expr.name?.name)
-      ? expr.name.name.map((n: any) => n.value).join(".")
-      : expr.name?.value || "UNKNOWN_FUNCTION";
+    const functionName =
+      Array.isArray(expr.name?.name) && expr.name?.length > 0
+        ? expr.name.name.map((n: any) => n.value).join(".")
+        : expr.name?.value || expr.name?.schema.value || "UNKNOWN_FUNCTION";
 
     const functionArgs =
       expr.args?.type === "expr_list" && Array.isArray(expr.args.value)
@@ -99,6 +100,11 @@ export const expressionHandlers: Record<
   }),
 
   number: (expr) => ({
+    type: "expression",
+    left: expr.value,
+  }),
+
+  string: (expr) => ({
     type: "expression",
     left: expr.value,
   }),

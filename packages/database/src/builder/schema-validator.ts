@@ -1,5 +1,3 @@
-// import { QueryNode, Schema, Table, ValidationRule } from "../query.model";
-// import { checkIsFromTable } from "../string-query-builder";
 import {
   ExpressionNode,
   QueryNode,
