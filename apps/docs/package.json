@@ -11,7 +11,7 @@
     "lint": "eslint ./stories/*.stories.tsx --max-warnings 0"
   },
   "dependencies": {
-    "@parseit/ui": "*",
+    "@parse-it/ui": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

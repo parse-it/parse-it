@@ -1,0 +1,39 @@
+{
+    "name": "@parse-it/database",
+    "version": "0.1.0",
+    "description": "A simple query builder for TypeScript",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "keywords": [
+        "typescript",
+        "library"
+    ],
+    "author": "Mikiyas Amdu",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/parse-it/parse-it"
+    },
+    "bugs": {
+        "url": "https://github.com/parse-it/parse-it/issues"
+    },
+    "homepage": "https://github.com/parse-it/parse-it#readme",
+    "devDependencies": {
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2",
+        "vitest": "^2.1.8"
+    },
+    "dependencies": {
+        "peggy": "^4.2.0"
+    }
+}
