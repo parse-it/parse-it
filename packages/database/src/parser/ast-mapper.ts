@@ -9,8 +9,10 @@ import {
   TableNode,
   WithNode,
 } from "../types";
+import { expressionHandlers } from "./expression.handler";
 
 export class ASTMapper {
+ 
   map(parsedAST: any): QueryNode {
     const { ast } = parsedAST;
     // Handle array-based AST
@@ -223,6 +225,18 @@ export class ASTMapper {
     }
   }
 
+  private mapExpressionFunctional(expr: any): ExpressionNode {
+    if (!expr || typeof expr !== "object" || !expr.type) {
+      throw new Error(`Invalid expression: ${JSON.stringify(expr)}`);
+    }
+    // Find the appropriate handler for the expression type
+    const handler = expressionHandlers[expr.type];
+    if (!handler) {
+      throw new Error(`Unsupported expression type: ${JSON.stringify(expr)}`);
+    }
+
+    return handler(expr, this.mapExpressionFunctional);
+  }
   private mapWindowSpec(windowSpec: any): string {
     const partitionBy = windowSpec.partition_clause
       ? `PARTITION BY ${windowSpec.partition_clause
