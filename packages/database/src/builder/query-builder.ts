@@ -1,18 +1,47 @@
 import {
-  QueryNode,
-  SelectNode,
-  TableNode,
-  JoinNode,
+  ExpressionNode,
   FilterNode,
   GroupByNode,
+  JoinNode,
   OrderByNode,
-  WithNode,
-  ExpressionNode,
+  QueryNode,
+  SelectNode,
   SubQueryNode,
+  TableNode,
+  WithNode,
 } from "../types";
+import { LexicalAnalyzer } from "./lexical-analyzer";
+import { Schema } from "./mode";
+import { SchemaValidator } from "./schema-validator";
+import { SyntaxAnalyzer } from "./syntax-analyzer";
+import { checkIsFromTable } from "./util";
+import { ValidationPipeline } from "./validation-pipeline";
 
 export class QueryBuilder {
-  build(queryNode: QueryNode): string {
+  private validationPipeline: ValidationPipeline;
+  constructor() {
+    this.validationPipeline = new ValidationPipeline([
+      new LexicalAnalyzer(),
+      new SyntaxAnalyzer(),
+      new SchemaValidator(),
+    ]);
+  }
+
+  validate(queryNode: QueryNode, schema?: Schema) {
+    const errors = this.validationPipeline.validate(queryNode, schema);
+
+    if (errors.length > 0) {
+      throw new Error(
+        "Query validation failed:\n" +
+          errors
+            .map((e) => `- ${e.message} (Location: ${e.location})`)
+            .join("\n")
+      );
+    }
+  }
+
+  build(queryNode: QueryNode, schema?: Schema): string {
+    this.validate(queryNode, schema);
     let sql = "";
 
     if (queryNode.with && queryNode.with.length > 0) {
@@ -77,15 +106,12 @@ export class QueryBuilder {
   }
 
   private buildFromClause(from: TableNode | SubQueryNode): string {
-    if ("name" in from) {
-      // It's a TableNode
+    if (checkIsFromTable(from))
       return `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`;
-    } else {
-      // It's a SubQueryNode
-      return `FROM (${this.build(from.query)})${
-        from.alias ? ` AS ${from.alias}` : ""
-      }`;
-    }
+
+    return `FROM (${this.build(from.query)})${
+      from.alias ? ` AS ${from.alias}` : ""
+    }`;
   }
 
   private buildJoinClause(joins: JoinNode[]): string {
@@ -107,17 +133,14 @@ export class QueryBuilder {
     };
     return joins
       .map((join) => {
-        if ("name" in join.table) {
-          // It's a TableNode
+        if (checkIsFromTable(join.table)) {
           return `${joinTypeToExpression(join.joinType)} ${join.table.name}${
             join.table.alias ? ` AS ${join.table.alias}` : ""
           } ON ${this.buildExpression(join.on)}`;
-        } else {
-          // It's a SubQueryNode
-          return `${joinTypeToExpression(join.joinType)} (${this.build(join.table.query)})${
-            join.table.alias ? ` AS ${join.table.alias}` : ""
-          } ON ${this.buildExpression(join.on)}`;
         }
+        return `${joinTypeToExpression(join.joinType)} (${this.build(join.table.query)})${
+          join.table.alias ? ` AS ${join.table.alias}` : ""
+        } ON ${this.buildExpression(join.on)}`;
       })
       .join(" ");
   }
