@@ -1,3 +1,6 @@
 declare module "*.pegjs" {
-    export function parse(input: string, options?: any): any;
-  }
+  export function parse(
+    input: string,
+    options?: import("./parser").ParseOptions
+  ): any;
+}

@@ -13,6 +13,7 @@ export function peggyPlugin(): EsbuildPlugin {
         const code = peggy.generate(grammar, {
           output: "source",
           format: "es",
+          cache: true,
         });
 
         return {
