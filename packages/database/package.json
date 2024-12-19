@@ -9,7 +9,7 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsup",
+        "build": "tsup src/index.ts --format cjs,esm --dts",
         "dev": "tsup --watch",
         "test": "vitest run",
         "test:watch": "vitest"
@@ -22,7 +22,8 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/parse-it/parse-it"
+        "url": "git+https://github.com/parse-it/parse-it.git",
+        "directory": "packages/database"
     },
     "bugs": {
         "url": "https://github.com/parse-it/parse-it/issues"
@@ -35,5 +36,8 @@
     },
     "dependencies": {
         "peggy": "^4.2.0"
+    },
+    "publishConfig": {
+        "access": "restricted"
     }
 }
