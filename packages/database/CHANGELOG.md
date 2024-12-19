@@ -1,5 +1,11 @@
 # @parse-it/database
 
+## 0.3.0
+
+### Minor Changes
+
+- 2f2f3f3: bump npm publish
+
 ## 0.2.0
 
 ### Minor Changes
