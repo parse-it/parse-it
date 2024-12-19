@@ -10,6 +10,7 @@ export function traverseExpression(
   expression: ExpressionNode,
   callback: (operand: string | number | string[], operator?: string) => void
 ): void {
+  if(expression === null) return
   if (typeof expression.left === "string") {
     callback(expression.left, expression.operator);
   } else if (typeof expression.left === "object") {

@@ -163,6 +163,7 @@ function validateReservedKeywords(
   const errors: ValidationError[] = [];
 
   query.selects.forEach((select) => {
+    if(select.expression == null) return
     traverseExpression(select.expression, (operand) => {
       if (
         typeof operand === "string" &&
@@ -189,6 +190,7 @@ function validateOperators(
   const errors: ValidationError[] = [];
 
   (query.where?.conditions || []).forEach((condition) => {
+    if(condition === null) return
     traverseExpression(condition, (operand, operator) => {
       if (operator && !validOperators.includes(operator)) {
         errors.push(

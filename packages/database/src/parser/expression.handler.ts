@@ -20,7 +20,7 @@ export const expressionHandlers: Record<
     const functionName =
       Array.isArray(expr.name?.name) && expr.name?.length > 0
         ? expr.name.name.map((n: any) => n.value).join(".")
-        : expr.name?.value || expr.name?.schema.value || "UNKNOWN_FUNCTION";
+        : expr.name?.value || expr.name?.schema?.value || "UNKNOWN_FUNCTION";
 
     const functionArgs =
       expr.args?.type === "expr_list" && Array.isArray(expr.args.value)
