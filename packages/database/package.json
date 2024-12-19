@@ -36,5 +36,8 @@
     },
     "dependencies": {
         "peggy": "^4.2.0"
+    },
+    "publishConfig": {
+        "access": "restricted"
     }
 }
