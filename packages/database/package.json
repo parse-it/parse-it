@@ -22,7 +22,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/parse-it/parse-it",
+        "url": "git+https://github.com/parse-it/parse-it.git",
         "directory": "packages/database"
     },
     "bugs": {
