@@ -38,6 +38,7 @@
         "peggy": "^4.2.0"
     },
     "publishConfig": {
-        "access": "restricted"
+        "access": "restricted",
+        "registry": "https://npm.pkg.github.com"
     }
 }
