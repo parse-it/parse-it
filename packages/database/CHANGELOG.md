@@ -1,5 +1,11 @@
 # @parse-it/database
 
+## 0.4.2
+
+### Patch Changes
+
+- b1221cb: bump
+
 ## 0.4.1
 
 ### Patch Changes
