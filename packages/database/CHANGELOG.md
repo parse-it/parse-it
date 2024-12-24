@@ -1,5 +1,11 @@
 # @parse-it/database
 
+## 0.4.0
+
+### Minor Changes
+
+- cf9fd91: bump version
+
 ## 0.3.0
 
 ### Minor Changes
