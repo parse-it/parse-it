@@ -1,5 +1,11 @@
 # @parse-it/database
 
+## 0.4.1
+
+### Patch Changes
+
+- e94a498: version bump
+
 ## 0.4.0
 
 ### Minor Changes
