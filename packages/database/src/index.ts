@@ -1,4 +1,4 @@
-import { QueryBuilder } from "./builder/query-builder";
+import { QueryBuilder, QueryBuilderMode } from "./builder/query-builder";
 import { ASTMapper } from "./parser/ast-mapper";
 import { parseBigQuery } from "./parser/sql-to-ast";
 
@@ -35,10 +35,16 @@ FROM EarliestPublishedDates e
 JOIN CurrentlyPublishedPosts c
   ON e.id = c.id;`
 
-const mapper = new ASTMapper();
-const queryNode = mapper.map(parseBigQuery(a));
+  const query1 = `SELECT word, word_count
+        FROM \`bigquery-public-data.samples.shakespeare\`
+        WHERE corpus = romeoandjuliet
+        AND word_count >= 250
+        ORDER BY word_count DESC`
 
-const queryBuilder = new QueryBuilder();
+const mapper = new ASTMapper();
+const queryNode = mapper.map(parseBigQuery(query1));
+
+const queryBuilder = new QueryBuilder(QueryBuilderMode.NAMED);
 console.dir(queryNode, { depth: null });
 
 const query = queryBuilder.build(queryNode);
