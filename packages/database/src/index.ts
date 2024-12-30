@@ -1,10 +1,9 @@
-import { QueryBuilder } from "./builder/query-builder";
-import { ASTMapper } from "./parser/ast-mapper";
-import { parseBigQuery } from "./parser/sql-to-ast";
+import { QueryBuilder } from "./builder/query-builder"
+import { ASTMapper } from "./parser/ast-mapper"
+import { parseBigQuery } from "./parser/sql-to-ast"
 
-export * from "./builder/query-builder";
-export * from "./parser/sql-to-ast";
-
+export * from "./builder/query-builder"
+export * from "./parser/sql-to-ast"
 
 const a = `
 WITH PublishedPosts AS (
@@ -35,12 +34,12 @@ FROM EarliestPublishedDates e
 JOIN CurrentlyPublishedPosts c
   ON e.id = c.id;`
 
-const mapper = new ASTMapper();
-const queryNode = mapper.map(parseBigQuery(a));
+const mapper = new ASTMapper()
+const queryNode = mapper.map(parseBigQuery(a))
 
-const queryBuilder = new QueryBuilder();
-console.dir(queryNode, { depth: null });
+const queryBuilder = new QueryBuilder()
+console.dir(queryNode, { depth: null })
 
-const query = queryBuilder.build(queryNode);
+const query = queryBuilder.build(queryNode)
 
-console.log(query);
+console.log(query)
