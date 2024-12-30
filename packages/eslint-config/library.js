@@ -32,4 +32,10 @@ module.exports = {
     },
   },
   ignorePatterns: ["node_modules/", "dist/"],
+  overrides: [
+    {
+      files: ["*.ts", "*.tsx"],
+      semi: ["error", "never"],
+    }
+  ]
 };

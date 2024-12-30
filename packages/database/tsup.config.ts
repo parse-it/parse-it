@@ -1,13 +1,13 @@
-import { defineConfig } from "tsup";
-import { peggyPlugin } from "./src/scripts/peggy.plugin";
+import { defineConfig } from 'tsup';
+import { peggyPlugin } from './src/scripts/peggy.plugin';
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ['src/index.ts'],
   clean: true,
-  format: ["cjs", "esm"],
+  format: ['cjs', 'esm'],
   dts: true,
   loader: {
-    ".pegjs": "ts",
+    '.pegjs': 'ts',
   },
   esbuildPlugins: [peggyPlugin()],
 });

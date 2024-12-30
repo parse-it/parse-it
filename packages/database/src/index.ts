@@ -1,10 +1,9 @@
-import { QueryBuilder, QueryBuilderMode } from "./builder/query-builder";
-import { ASTMapper } from "./parser/ast-mapper";
-import { parseBigQuery } from "./parser/sql-to-ast";
+import { QueryBuilder, QueryBuilderMode } from './builder/query-builder';
+import { ASTMapper } from './parser/ast-mapper';
+import { parseBigQuery } from './parser/sql-to-ast';
 
-export * from "./builder/query-builder";
-export * from "./parser/sql-to-ast";
-
+export * from './builder/query-builder';
+export * from './parser/sql-to-ast';
 
 const a = `
 WITH PublishedPosts AS (
@@ -33,13 +32,13 @@ SELECT
     aa AS maxDaysOpen
 FROM EarliestPublishedDates e
 JOIN CurrentlyPublishedPosts c
-  ON e.id = c.id;`
+  ON e.id = c.id;`;
 
-  const query1 = `SELECT word, word_count
+const query1 = `SELECT word, word_count
         FROM \`bigquery-public-data.samples.shakespeare\`
         WHERE corpus = romeoandjuliet
         AND word_count >= 250
-        ORDER BY word_count DESC`
+        ORDER BY word_count DESC`;
 
 const mapper = new ASTMapper();
 const queryNode = mapper.map(parseBigQuery(query1));

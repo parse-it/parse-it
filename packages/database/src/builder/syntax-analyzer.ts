@@ -1,13 +1,13 @@
-import { QueryNode } from "../types";
-import { ValidationRule } from "./mode";
-import { ValidationError } from "./validation.error";
+import { QueryNode } from '../types';
+import { ValidationRule } from './mode';
+import { ValidationError } from './validation.error';
 
 export class SyntaxAnalyzer implements ValidationRule {
   validate(query: QueryNode): ValidationError[] {
     return ([] as any).concat(
       validateGroupByMatchSelect(query),
       validateHavingRequiresGroupBy(query),
-      validateLimitWithOrderBy(query)
+      validateLimitWithOrderBy(query),
     );
   }
 }
@@ -22,9 +22,9 @@ function validateGroupByMatchSelect(query: QueryNode) {
       errors.push(
         new ValidationError(
           `Column '${column}' in GROUP BY must be selected.`,
-          "GROUP BY",
-          "Add the column to the SELECT clause."
-        )
+          'GROUP BY',
+          'Add the column to the SELECT clause.',
+        ),
       );
     }
   });
@@ -33,13 +33,13 @@ function validateGroupByMatchSelect(query: QueryNode) {
 
 function validateHavingRequiresGroupBy(query: QueryNode) {
   const errors: ValidationError[] = [];
-  if (query.having && !query.orderBy?.some((s) => s.column === "groupBy")) {
+  if (query.having && !query.orderBy?.some((s) => s.column === 'groupBy')) {
     errors.push(
       new ValidationError(
-        "HAVING clause requires a GROUP BY clause.",
-        "HAVING",
-        "Add a GROUP BY clause to your query."
-      )
+        'HAVING clause requires a GROUP BY clause.',
+        'HAVING',
+        'Add a GROUP BY clause to your query.',
+      ),
     );
   }
   return errors;
@@ -50,10 +50,10 @@ function validateLimitWithOrderBy(query: QueryNode) {
   if (query?.limit && !query.orderBy) {
     errors.push(
       new ValidationError(
-        "LIMIT requires an ORDER BY clause for deterministic results.",
-        "LIMIT",
-        "Add an ORDER BY clause to your query."
-      )
+        'LIMIT requires an ORDER BY clause for deterministic results.',
+        'LIMIT',
+        'Add an ORDER BY clause to your query.',
+      ),
     );
   }
   return errors;

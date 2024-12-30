@@ -1,5 +1,5 @@
-import { QueryNode } from "../types";
-import { ValidationError } from "./validation.error";
+import { QueryNode } from '../types';
+import { ValidationError } from './validation.error';
 
 export type Schema = {
   [tableName: string]: string[]; // Table name to column names mapping

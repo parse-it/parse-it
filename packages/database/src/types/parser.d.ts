@@ -46,7 +46,7 @@ export interface LocationRange {
  * Expected a literal string, like `"foo"i`.
  */
 export interface LiteralExpectation {
-  readonly type: "literal";
+  readonly type: 'literal';
   readonly text: string;
   readonly ignoreCase: boolean;
 }
@@ -54,19 +54,15 @@ export interface LiteralExpectation {
 /**
  * Range of characters, like `a-z`
  */
-export type ClassRange = [
-  start: string,
-  end: string,
-]
+export type ClassRange = [start: string, end: string];
 
-export interface ClassParts extends Array<string | ClassRange> {
-}
+export interface ClassParts extends Array<string | ClassRange> {}
 
 /**
  * Expected a class, such as `[^acd-gz]i`
  */
 export interface ClassExpectation {
-  readonly type: "class";
+  readonly type: 'class';
   readonly parts: ClassParts;
   readonly inverted: boolean;
   readonly ignoreCase: boolean;
@@ -76,14 +72,14 @@ export interface ClassExpectation {
  * Expected any character, with `.`
  */
 export interface AnyExpectation {
-  readonly type: "any";
+  readonly type: 'any';
 }
 
 /**
  * Expected the end of input.
  */
 export interface EndExpectation {
-  readonly type: "end";
+  readonly type: 'end';
 }
 
 /**
@@ -92,7 +88,7 @@ export interface EndExpectation {
  * function.
  */
 export interface OtherExpectation {
-  readonly type: "other";
+  readonly type: 'other';
   readonly description: string;
 }
 
@@ -123,7 +119,10 @@ export declare class SyntaxError extends Error {
    * @param found Any text that will appear as found in the input instead of
    *   expected
    */
-  static buildMessage(expected: Expectation[], found?: string | null | undefined): string;
+  static buildMessage(
+    expected: Expectation[],
+    found?: string | null | undefined,
+  ): string;
   readonly message: string;
   readonly expected: Expectation[];
   readonly found: string | null | undefined;
@@ -151,27 +150,27 @@ export interface ParserTracer {
   trace: (event: ParserTracerEvent) => void;
 }
 
-export type ParserTracerEvent
-  = {
-      readonly type: "rule.enter";
+export type ParserTracerEvent =
+  | {
+      readonly type: 'rule.enter';
       readonly rule: string;
-      readonly location: LocationRange
+      readonly location: LocationRange;
     }
   | {
-      readonly type: "rule.fail";
+      readonly type: 'rule.fail';
       readonly rule: string;
-      readonly location: LocationRange
+      readonly location: LocationRange;
     }
   | {
-      readonly type: "rule.match";
+      readonly type: 'rule.match';
       readonly rule: string;
-      readonly location: LocationRange
+      readonly location: LocationRange;
       /** Return value from the rule. */
       readonly result: unknown;
     };
 
-export type StartRuleNames = "start";
-export interface ParseOptions<T extends StartRuleNames = "start"> {
+export type StartRuleNames = 'start';
+export interface ParseOptions<T extends StartRuleNames = 'start'> {
   /**
    * String or object that will be attached to the each `LocationRange` object
    * created by the parser. For example, this can be path to the parsed file
@@ -198,7 +197,7 @@ export declare const parse: typeof ParseFunction;
 
 // Overload of ParseFunction for each allowedStartRule
 
-declare function ParseFunction<Options extends ParseOptions<"start">>(
+declare function ParseFunction<Options extends ParseOptions<'start'>>(
   input: string,
   options?: Options,
 ): any;

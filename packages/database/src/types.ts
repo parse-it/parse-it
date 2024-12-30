@@ -1,5 +1,5 @@
 export type QueryNode = {
-  type: "query";
+  type: 'query';
   selects: SelectNode[];
   from: TableNode | SubQueryNode;
   joins?: JoinNode[];
@@ -15,61 +15,61 @@ export type QueryNode = {
 };
 
 export type SelectNode = {
-  type: "select";
+  type: 'select';
   expression: ExpressionNode;
   alias?: string;
 };
 
 export type TableNode = {
-  type: "table";
+  type: 'table';
   name: string;
   alias?: string;
 };
 
 export type SubQueryNode = {
-  type: "subquery";
+  type: 'subquery';
   query: QueryNode;
   alias?: string;
 };
 
 export type JoinNode = {
-  type: "join";
-  joinType: "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS";
+  type: 'join';
+  joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL' | 'CROSS';
   table: TableNode | SubQueryNode;
   on: ExpressionNode;
 };
 
 export type FilterNode = {
-  type: "filter";
-  operator: "AND" | "OR";
+  type: 'filter';
+  operator: 'AND' | 'OR';
   conditions: ExpressionNode[];
 };
 
 export type GroupByNode = {
-  type: "groupby";
+  type: 'groupby';
   columns: string[];
 };
 
 export type OrderByNode = {
-  type: "orderby";
+  type: 'orderby';
   column: string;
-  direction: "ASC" | "DESC";
+  direction: 'ASC' | 'DESC';
 };
 
 export type WithNode = {
-  type: "with";
+  type: 'with';
   name: string;
   query: QueryNode;
 };
 
 export type UnionNode = {
-  type: "union";
-  unionType: "UNION" | "UNION ALL";
+  type: 'union';
+  unionType: 'UNION' | 'UNION ALL';
   query: QueryNode;
 };
 
 export type ExpressionNode = {
-  type: "expression";
+  type: 'expression';
   left: string | ExpressionNode;
   operator?: string;
   right?: string | number | ExpressionNode | string[];
