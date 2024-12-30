@@ -9,18 +9,18 @@ import {
   SubQueryNode,
   TableNode,
   WithNode,
-} from "../types";
-import { LexicalAnalyzer } from "./lexical-analyzer";
-import { Schema } from "./mode";
-import { SchemaValidator } from "./schema-validator";
-import { SyntaxAnalyzer } from "./syntax-analyzer";
-import { checkIsFromTable } from "./util";
-import { ValidationPipeline } from "./validation-pipeline";
+} from '../types';
+import { LexicalAnalyzer } from './lexical-analyzer';
+import { Schema } from './mode';
+import { SchemaValidator } from './schema-validator';
+import { SyntaxAnalyzer } from './syntax-analyzer';
+import { applyMaybeClause, checkIsFromTable } from './util';
+import { ValidationPipeline } from './validation-pipeline';
 
 export enum QueryBuilderMode {
-  SIMPLE = "SIMPLE",
-  NAMED = "NAMED",
-  POSITIONAL = "POSITIONAL",
+  SIMPLE = 'SIMPLE',
+  NAMED = 'NAMED',
+  POSITIONAL = 'POSITIONAL',
 }
 
 export interface QueryBuildResult {
@@ -30,9 +30,9 @@ export interface QueryBuildResult {
 
 export class QueryBuilder {
   private validationPipeline: ValidationPipeline;
-  private mode: QueryBuilderMode = QueryBuilderMode.SIMPLE;
+  private mode: QueryBuilderMode = QueryBuilderMode.NAMED;
 
-  constructor(mode: QueryBuilderMode = QueryBuilderMode.SIMPLE) {
+  constructor(mode: QueryBuilderMode = QueryBuilderMode.NAMED) {
     this.validationPipeline = new ValidationPipeline([
       new LexicalAnalyzer(),
       new SyntaxAnalyzer(),
@@ -41,17 +41,17 @@ export class QueryBuilder {
     this.mode = mode;
   }
 
-  setMode(mode: QueryBuilderMode): void {
+  setMode(mode: QueryBuilderMode) {
     this.mode = mode;
   }
 
-  validate(queryNode: QueryNode, schema?: Schema): void {
+  validate(queryNode: QueryNode, schema?: Schema) {
     const errors = this.validationPipeline.validate(queryNode, schema);
     if (errors.length > 0) {
       throw new Error(
         `Query validation failed:\n${errors
           .map((e) => `- ${e.message} (Location: ${e.location})`)
-          .join("\n")}`
+          .join('\n')}`,
       );
     }
   }
@@ -65,7 +65,7 @@ export class QueryBuilder {
 
     const buildExpression = (expr: ExpressionNode): string => {
       const isLiteral = (value: any) =>
-        typeof value === "string" || typeof value === "number";
+        typeof value === 'string' || typeof value === 'number';
 
       if (isLiteral(expr.left) && !expr.operator && !expr.right) {
         if (this.mode === QueryBuilderMode.NAMED) {
@@ -86,27 +86,60 @@ export class QueryBuilder {
         } ${buildExpression(expr.right as ExpressionNode)}`;
       }
 
-      return expr.left === null ? "NULL" : JSON.stringify(expr.left);
+      return expr.left === null ? 'NULL' : JSON.stringify(expr.left);
     };
 
-    const clauses = [
-      () => this.buildWithClause(queryNode.with),
-      () =>
-        `SELECT ${this.buildSelectClause(queryNode.selects, buildExpression)}`,
-      () => this.buildFromClause(queryNode.from, buildExpression),
-      () => this.buildJoinClause(queryNode.joins, buildExpression),
-      () => this.buildWhereClause(queryNode.where, buildExpression),
-      () => this.buildGroupByClause(queryNode.groupBy),
-      () => this.buildHavingClause(queryNode.having, buildExpression),
-      () => this.buildOrderByClause(queryNode.orderBy),
-      () => this.buildLimitClause(queryNode.limit),
-      () => this.buildOffsetClause(queryNode.offset),
+    const clauses: Array<{
+      value: unknown;
+      builder: (value: any) => string;
+    }> = [
+      {
+        value: queryNode.with,
+        builder: (v: WithNode[]) => this.buildWithClause(v),
+      },
+      {
+        value: null,
+        builder: () =>
+          `SELECT ${this.buildSelectClause(queryNode.selects, buildExpression)}`,
+      },
+      {
+        value: null,
+        builder: () => this.buildFromClause(queryNode.from),
+      },
+      {
+        value: queryNode.joins,
+        builder: (v: JoinNode[]) => this.buildJoinClause(v, buildExpression),
+      },
+      {
+        value: queryNode.where,
+        builder: (v: FilterNode) => this.buildWhereClause(v, buildExpression),
+      },
+      {
+        value: queryNode.groupBy,
+        builder: (v: GroupByNode) => this.buildGroupByClause(v),
+      },
+      {
+        value: queryNode.having,
+        builder: (v: FilterNode) => this.buildHavingClause(v, buildExpression),
+      },
+      {
+        value: queryNode.orderBy,
+        builder: (v: OrderByNode[]) => this.buildOrderByClause(v),
+      },
+      {
+        value: queryNode.limit,
+        builder: (v: number) => this.buildLimitClause(v),
+      },
+      {
+        value: queryNode.offset,
+        builder: (v: number) => this.buildOffsetClause(v),
+      },
     ];
 
     const query = clauses
-      .map((clause) => clause())
+      .map(({ value, builder }) => applyMaybeClause(value, builder))
       .filter((sql) => sql)
-      .join(" ")
+      .join(' ')
       .trim();
 
     return {
@@ -116,92 +149,83 @@ export class QueryBuilder {
     };
   }
 
-  private buildWithClause(withNodes?: WithNode[]): string {
-    return withNodes?.length
-      ? `WITH ${withNodes
-          .map((node) => `${node.name} AS (${this.build(node.query).query})`)
-          .join(", ")}`
-      : "";
+  private buildWithClause(withNodes: WithNode[]) {
+    return `WITH ${withNodes
+      .map((node) => `${node.name} AS (${this.build(node.query).query})`)
+      .join(', ')}`;
   }
 
   private buildSelectClause(
     selects: SelectNode[],
-    buildExpression: (expr: ExpressionNode) => string
-  ): string {
+    buildExpression: (expr: ExpressionNode) => string,
+  ) {
     return selects
       .map((select) =>
         select.alias
           ? `${buildExpression(select.expression)} AS ${select.alias}`
-          : buildExpression(select.expression)
+          : buildExpression(select.expression),
       )
-      .join(", ");
+      .join(', ');
   }
 
-  private buildFromClause(
-    from: TableNode | SubQueryNode | undefined,
-    buildExpression: (expr: ExpressionNode) => string
-  ): string {
-    if (!from) return "";
+  private buildFromClause(from: TableNode | SubQueryNode) {
     return checkIsFromTable(from)
-      ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`
-      : `FROM (${this.build(from.query).query})${from.alias ? ` AS ${from.alias}` : ""}`;
+      ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ''}`
+      : `FROM (${this.build(from.query).query})${from.alias ? ` AS ${from.alias}` : ''}`;
   }
 
   private buildJoinClause(
-    joins: JoinNode[] | undefined,
-    buildExpression: (expr: ExpressionNode) => string
-  ): string {
-    if (!joins?.length) return "";
+    joins: JoinNode[],
+    buildExpression: (expr: ExpressionNode) => string,
+  ) {
     return joins
       .map((join) => {
         const table = checkIsFromTable(join.table)
-          ? `${join.table.name}${join.table.alias ? ` AS ${join.table.alias}` : ""}`
-          : `(${this.build(join.table.query).query})${join.table.alias ? ` AS ${join.table.alias}` : ""}`;
+          ? `${join.table.name}${join.table.alias ? ` AS ${join.table.alias}` : ''}`
+          : `(${this.build(join.table.query).query})${join.table.alias ? ` AS ${join.table.alias}` : ''}`;
         return `${this.mapJoinType(join.joinType)} ${table} ON ${buildExpression(join.on)}`;
       })
-      .join(" ");
+      .join(' ');
   }
 
   private buildWhereClause(
-    where: FilterNode | undefined,
-    buildExpression: (expr: ExpressionNode) => string
-  ): string {
-    return where ? `WHERE ${buildExpression(where.conditions[0])}` : "";
+    where: FilterNode,
+    buildExpression: (expr: ExpressionNode) => string,
+  ) {
+    return `WHERE ${buildExpression(where.conditions[0])}`;
   }
 
-  private buildGroupByClause(groupBy?: GroupByNode): string {
-    return groupBy ? `GROUP BY ${groupBy.columns.join(", ")}` : "";
+  private buildGroupByClause(groupBy: GroupByNode) {
+    return `GROUP BY ${groupBy.columns.join(', ')}`;
   }
 
   private buildHavingClause(
-    having: FilterNode | undefined,
-    buildExpression: (expr: ExpressionNode) => string
-  ): string {
-    return having ? `HAVING ${buildExpression(having.conditions[0])}` : "";
+    having: FilterNode,
+    buildExpression: (expr: ExpressionNode) => string,
+  ) {
+    return `HAVING ${buildExpression(having.conditions[0])}`;
   }
 
-  private buildOrderByClause(orderBy?: OrderByNode[]): string {
-    return orderBy?.length
-      ? `ORDER BY ${orderBy.map((o) => `${o.column} ${o.direction}`).join(", ")}`
-      : "";
+  private buildOrderByClause(orderBy: OrderByNode[]) {
+    return `ORDER BY ${orderBy.map((o) => `${o.column} ${o.direction}`).join(', ')}`;
   }
 
-  private buildLimitClause(limit?: number): string {
-    return limit !== undefined ? `LIMIT ${limit}` : "";
+  private buildLimitClause(limit: number) {
+    return `LIMIT ${limit}`;
   }
 
-  private buildOffsetClause(offset?: number): string {
-    return offset !== undefined ? `OFFSET ${offset}` : "";
+  private buildOffsetClause(offset: number) {
+    return `OFFSET ${offset}`;
   }
 
-  private mapJoinType(joinType: JoinNode["joinType"]): string {
+  private mapJoinType(joinType: JoinNode['joinType']) {
     const joinTypes: Record<string, string> = {
-      INNER: "INNER JOIN",
-      LEFT: "LEFT JOIN",
-      RIGHT: "RIGHT JOIN",
-      FULL: "FULL JOIN",
-      CROSS: "CROSS JOIN",
+      INNER: 'INNER JOIN',
+      LEFT: 'LEFT JOIN',
+      RIGHT: 'RIGHT JOIN',
+      FULL: 'FULL JOIN',
+      CROSS: 'CROSS JOIN',
     };
-    return joinTypes[joinType] || "JOIN";
+    return joinTypes[joinType] || 'JOIN';
   }
 }

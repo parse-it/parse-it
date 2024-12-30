@@ -1,25 +1,25 @@
-import { ExpressionNode, SubQueryNode, TableNode } from "../types";
+import { ExpressionNode, SubQueryNode, TableNode } from '../types';
 
 export const checkIsFromTable = (
-  value: TableNode | SubQueryNode
+  value: TableNode | SubQueryNode,
 ): value is TableNode => {
-  return Object.hasOwn(value, "name");
+  return Object.hasOwn(value, 'name');
 };
 
 export function traverseExpression(
   expression: ExpressionNode,
-  callback: (operand: string | number | string[], operator?: string) => void
+  callback: (operand: string | number | string[], operator?: string) => void,
 ): void {
-  if(expression === null) return
-  if (typeof expression.left === "string") {
+  if (expression === null) return;
+  if (typeof expression.left === 'string') {
     callback(expression.left, expression.operator);
-  } else if (typeof expression.left === "object") {
+  } else if (typeof expression.left === 'object') {
     traverseExpression(expression.left, callback);
   }
 
   if (
     expression.right &&
-    typeof expression.right === "object" &&
+    typeof expression.right === 'object' &&
     !Array.isArray(expression.right)
   ) {
     traverseExpression(expression.right, callback);
@@ -27,3 +27,13 @@ export function traverseExpression(
     callback(expression.right, expression.operator);
   }
 }
+
+export const applyMaybeClause = <T>(
+  value: T | null | undefined,
+  builder: (value?: T) => string,
+): string => {
+  if ((Array.isArray(value) && !value.length) || typeof value == 'undefined')
+    return '';
+  if (value === null) return builder();
+  return builder(value);
+};
