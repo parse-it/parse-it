@@ -17,14 +17,36 @@ import { SyntaxAnalyzer } from "./syntax-analyzer"
 import { applyMaybeClause, checkIsFromTable } from "./util"
 import { ValidationPipeline } from "./validation-pipeline"
 
+/**
+ * Enum representing the different modes of the QueryBuilder for BigQuery.
+ *
+ * - SIMPLE: This mode is used for basic query building without any parameterization.
+ *   Example Output: `SELECT * FROM users WHERE age > 30`
+ *   Note: if you get part of the query from user input, you should use a different mode to prevent SQL injection.
+ *
+ * - NAMED: This mode allows for named parameters in the query, which can be replaced with actual values at runtime.
+ *   Example Output: `SELECT * FROM users WHERE age > @age`
+ *
+ * - POSITIONAL: This mode uses positional parameters in the query, which are replaced with actual values based on their position.
+ *   Example Output: `SELECT * FROM users WHERE age > ?`
+ */
 export enum QueryBuilderMode {
   SIMPLE = "SIMPLE",
   NAMED = "NAMED",
   POSITIONAL = "POSITIONAL",
 }
 
+/**
+ * Interface representing the result of a query build operation.
+ */
 export interface QueryBuildResult {
+  /**
+   * The generated SQL query string.
+   */
   query: string
+  /**
+   * The parameters to be used in the query. This can be a record of named parameters or an array of positional parameters.
+   */
   parameters?: Record<string, any> | any[]
 }
 

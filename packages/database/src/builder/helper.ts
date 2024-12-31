@@ -29,9 +29,15 @@ export type JoinHelperArgs = [
 ]
 
 /**
- *
- * @param JoinHelperArgs
- * @returns
+ * Constructs a JoinNode representing a SQL JOIN clause with the given arguments.
+ * 
+ * @param args - An array containing the table, first column, operator, second column, and optional join type.
+ *   - table: The table to join, either as a string or an object with table details.
+ *   - first: The first column in the join condition.
+ *   - operator: The operator for the join condition (defaults to "=" if not provided).
+ *   - second: The second column in the join condition.
+ *   - joinType: The type of join (e.g., "INNER JOIN", "LEFT JOIN"). Defaults to "JOIN" if not provided.
+ * @returns A JoinNode representing the JOIN clause.
  */
 export function join(...args: JoinHelperArgs): JoinNode {
   const [table, first, operator, second, joinType] = args
@@ -113,10 +119,11 @@ export function joinWhere(...args: JoinHelperArgs): JoinNode {
 }
 
 /**
- *
- * @param conditions
- * @param booleanOperator
- * @returns
+ * Constructs a FilterNode representing a WHERE clause with the given conditions and boolean operator.
+ * 
+ * @param conditions - An array of condition objects, each containing a column, operator, and value.
+ * @param booleanOperator - The boolean operator to combine the conditions, either "AND" or "OR". Defaults to "AND".
+ * @returns A FilterNode representing the WHERE clause.
  */
 export function where(
   conditions: { column: string; operator: string; value: string | number }[],
