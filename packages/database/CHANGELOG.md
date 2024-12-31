@@ -1,5 +1,11 @@
 # @parse-it/database
 
+## 0.3.0
+
+### Minor Changes
+
+- 8325a98: Prepare for early release
+
 ## 0.4.2
 
 ### Patch Changes
