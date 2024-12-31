@@ -1,7 +1,7 @@
-import { QueryNode } from "../types";
-import { ValidationRule } from "./mode";
-import { traverseExpression } from "./util";
-import { ValidationError } from "./validation.error";
+import { QueryNode } from "../types"
+import { ValidationRule } from "./mode"
+import { traverseExpression } from "./util"
+import { ValidationError } from "./validation.error"
 
 export class LexicalAnalyzer implements ValidationRule {
   /**
@@ -42,7 +42,7 @@ export class LexicalAnalyzer implements ValidationRule {
     "&",
     "|",
     "^",
-  ];
+  ]
 
   /**
    * List of reserved SQL keywords that cannot be used as column names.
@@ -146,24 +146,24 @@ export class LexicalAnalyzer implements ValidationRule {
     "WITH",
     "WITHIN",
     "*",
-  ];
+  ]
 
   validate(query: QueryNode): ValidationError[] {
     return [
       ...validateReservedKeywords(query, this.reservedKeywords),
       ...validateOperators(query, this.validOperators),
-    ];
+    ]
   }
 }
 
 function validateReservedKeywords(
   query: QueryNode,
-  reservedKeywords: string[]
+  reservedKeywords: string[],
 ): ValidationError[] {
-  const errors: ValidationError[] = [];
+  const errors: ValidationError[] = []
 
   query.selects.forEach((select) => {
-    if(select.expression == null) return
+    if (select.expression == null) return
     traverseExpression(select.expression, (operand) => {
       if (
         typeof operand === "string" &&
@@ -173,36 +173,36 @@ function validateReservedKeywords(
           new ValidationError(
             `Column name '${operand}' is a reserved SQL keyword.`,
             "SELECT",
-            "Rename the column to avoid conflicts."
-          )
-        );
+            "Rename the column to avoid conflicts.",
+          ),
+        )
       }
-    });
-  });
+    })
+  })
 
-  return errors;
+  return errors
 }
 
 function validateOperators(
   query: QueryNode,
-  validOperators: string[]
+  validOperators: string[],
 ): ValidationError[] {
-  const errors: ValidationError[] = [];
+  const errors: ValidationError[] = []
 
-  (query.where?.conditions || []).forEach((condition) => {
-    if(condition === null) return
+  ;(query.where?.conditions || []).forEach((condition) => {
+    if (condition === null) return
     traverseExpression(condition, (operand, operator) => {
       if (operator && !validOperators.includes(operator)) {
         errors.push(
           new ValidationError(
             `Invalid operator in condition: '${operator}'.`,
             "WHERE",
-            `Use one of the valid operators: ${validOperators.join(", ")}.`
-          )
-        );
+            `Use one of the valid operators: ${validOperators.join(", ")}.`,
+          ),
+        )
       }
-    });
-  });
+    })
+  })
 
-  return errors;
+  return errors
 }

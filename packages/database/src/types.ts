@@ -1,36 +1,36 @@
 export type QueryNode = {
-  type: "query";
-  selects: SelectNode[];
-  from: TableNode | SubQueryNode;
-  joins?: JoinNode[];
-  where?: FilterNode;
-  groupBy?: GroupByNode;
-  having?: FilterNode;
-  orderBy?: OrderByNode[];
-  limit?: number;
-  offset?: number;
-  with?: WithNode[];
-  unions?: UnionNode[];
-  qualify?: FilterNode;
-};
+  type: "query"
+  selects: SelectNode[]
+  from: TableNode | SubQueryNode
+  joins?: JoinNode[]
+  where?: FilterNode
+  groupBy?: GroupByNode
+  having?: FilterNode
+  orderBy?: OrderByNode[]
+  limit?: number
+  offset?: number
+  with?: WithNode[]
+  unions?: UnionNode[]
+  qualify?: FilterNode
+}
 
 export type SelectNode = {
-  type: "select";
-  expression: ExpressionNode;
-  alias?: string;
-};
+  type: "select"
+  expression: ExpressionNode
+  alias?: string
+}
 
 export type TableNode = {
-  type: "table";
-  name: string;
-  alias?: string;
-};
+  type: "table"
+  name: string
+  alias?: string
+}
 
 export type SubQueryNode = {
-  type: "subquery";
-  query: QueryNode;
-  alias?: string;
-};
+  type: "subquery"
+  query: QueryNode
+  alias?: string
+}
 
 export type JOIN_TYPE = "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS" | 'JOIN';
 export type JoinNode = {
@@ -41,33 +41,33 @@ export type JoinNode = {
 };
 
 export type FilterNode = {
-  type: "filter";
-  operator: "AND" | "OR";
-  conditions: ExpressionNode[];
-};
+  type: "filter"
+  operator: "AND" | "OR"
+  conditions: ExpressionNode[]
+}
 
 export type GroupByNode = {
-  type: "groupby";
-  columns: string[];
-};
+  type: "groupby"
+  columns: string[]
+}
 
 export type OrderByNode = {
-  type: "orderby";
-  column: string;
-  direction: "ASC" | "DESC";
-};
+  type: "orderby"
+  column: string
+  direction: "ASC" | "DESC"
+}
 
 export type WithNode = {
-  type: "with";
-  name: string;
-  query: QueryNode;
-};
+  type: "with"
+  name: string
+  query: QueryNode
+}
 
 export type UnionNode = {
-  type: "union";
-  unionType: "UNION" | "UNION ALL";
-  query: QueryNode;
-};
+  type: "union"
+  unionType: "UNION" | "UNION ALL"
+  query: QueryNode
+}
 
 export type ExpressionNode = {
   type: "expression";

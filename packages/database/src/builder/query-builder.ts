@@ -165,7 +165,7 @@ export class QueryBuilder {
           ? `${buildExpression(select.expression)} AS ${select.alias}`
           : buildExpression(select.expression)
       )
-      .join(", ");
+      .join(", ")
   }
 
   private buildFromClause(from: TableNode | SubQueryNode) {
@@ -185,7 +185,7 @@ export class QueryBuilder {
           : `(${this.build(join.table.query).query})${join.table.alias ? ` AS ${join.table.alias}` : ""}`;
         return `${this.mapJoinType(join.joinType)} ${table} ON ${buildExpression(join.on)}`;
       })
-      .join(" ");
+      .join(" ")
   }
 
   private buildWhereClause(
