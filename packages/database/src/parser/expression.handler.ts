@@ -1,4 +1,4 @@
-import { ExpressionNode } from "../types";
+import { ExpressionNode } from "../types"
 
 export const expressionHandlers: Record<
   string,
@@ -20,40 +20,40 @@ export const expressionHandlers: Record<
     const functionName =
       Array.isArray(expr.name?.name) && expr.name?.length > 0
         ? expr.name.name.map((n: any) => n.value).join(".")
-        : expr.name?.value || expr.name?.schema?.value || "UNKNOWN_FUNCTION";
+        : expr.name?.value || expr.name?.schema?.value || "UNKNOWN_FUNCTION"
 
     const functionArgs =
       expr.args?.type === "expr_list" && Array.isArray(expr.args.value)
         ? expr.args.value.map((arg: any) => mapExpression(arg).left).join(", ")
-        : "";
+        : ""
 
     return {
       type: "expression",
       left: `${functionName}(${functionArgs})`,
-    };
+    }
   },
 
   case: (expr, mapExpression) => {
     const caseParts = expr.args
       .map((arg: any) => {
         if (arg.type === "when") {
-          const condition = mapExpression(arg.cond);
-          const result = mapExpression(arg.result).left;
-          return `WHEN ${condition.left} ${condition.operator || ""} ${condition.right} THEN ${result}`;
+          const condition = mapExpression(arg.cond)
+          const result = mapExpression(arg.result).left
+          return `WHEN ${condition.left} ${condition.operator || ""} ${condition.right} THEN ${result}`
         }
         if (arg.type === "else") {
-          const elseResult = mapExpression(arg.result).left;
-          return `ELSE ${elseResult}`;
+          const elseResult = mapExpression(arg.result).left
+          return `ELSE ${elseResult}`
         }
-        return null;
+        return null
       })
       .filter(Boolean)
-      .join(" ");
+      .join(" ")
 
     return {
       type: "expression",
       left: `CASE ${caseParts} END`,
-    };
+    }
   },
 
   star: () => ({
@@ -74,19 +74,19 @@ export const expressionHandlers: Record<
   }),
 
   aggr_func: (expr, mapExpression) => {
-    const aggrFunctionName = expr.name;
+    const aggrFunctionName = expr.name
 
     const aggrFunctionArgs =
       expr.args?.expr?.type === "star"
         ? "*" // Handle "star" directly
         : expr.args?.expr
           ? mapExpression(expr.args.expr).left
-          : "";
+          : ""
 
     return {
       type: "expression",
       left: `${aggrFunctionName}(${aggrFunctionArgs})`,
-    };
+    }
   },
 
   single_quote_string: (expr) => ({
@@ -108,4 +108,4 @@ export const expressionHandlers: Record<
     type: "expression",
     left: expr.value,
   }),
-};
+}
