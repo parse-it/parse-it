@@ -32,13 +32,13 @@ export type SubQueryNode = {
   alias?: string
 }
 
-export type JOIN_TYPE = "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS" | 'JOIN';
+export type JOIN_TYPE = "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS" | "JOIN"
 export type JoinNode = {
-  type: "join";
-  joinType: JOIN_TYPE;
-  table: TableNode | SubQueryNode;
-  on: ExpressionNode;
-};
+  type: "join"
+  joinType: JOIN_TYPE
+  table: TableNode | SubQueryNode
+  on: ExpressionNode
+}
 
 export type FilterNode = {
   type: "filter"
@@ -70,8 +70,8 @@ export type UnionNode = {
 }
 
 export type ExpressionNode = {
-  type: "expression";
-  left: string | number | ExpressionNode;
-  operator?: string;
-  right?: string | number | ExpressionNode | string[];
-};
+  type: "expression"
+  left: string | number | ExpressionNode
+  operator?: string
+  right?: string | number | ExpressionNode | string[]
+}

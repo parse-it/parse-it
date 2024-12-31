@@ -10,7 +10,7 @@ export function traverseExpression(
   expression: ExpressionNode,
   callback: (operand: string | number | string[], operator?: string) => void,
 ): void {
-  if (expression === null) return;
+  if (expression === null) return
   if (typeof expression.left === "string") {
     callback(expression.left, expression.operator)
   } else if (typeof expression.left === "object") {
@@ -30,10 +30,10 @@ export function traverseExpression(
 
 export const applyMaybeClause = <T>(
   value: T | null | undefined,
-  builder: (value?: T) => string
+  builder: (value?: T) => string,
 ): string => {
   if ((Array.isArray(value) && !value.length) || typeof value == "undefined")
-    return "";
-  if (value === null) return builder();
-  return builder(value);
-};
+    return ""
+  if (value === null) return builder()
+  return builder(value)
+}

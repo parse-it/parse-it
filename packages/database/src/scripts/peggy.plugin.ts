@@ -28,11 +28,11 @@ export const VitePeggyPlugin = () => {
   return {
     name: "vite-peggy-plugin",
     async transform(grammar: string, id: string) {
-      if (!id.endsWith(".pegjs")) return;
-      const code = peggy.generate(grammar, { output: "source", format: "es" });
+      if (!id.endsWith(".pegjs")) return
+      const code = peggy.generate(grammar, { output: "source", format: "es" })
       return {
         code,
-      };
+      }
     },
-  };
-};
+  }
+}
