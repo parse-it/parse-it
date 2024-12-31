@@ -2,7 +2,7 @@
   "extends": "@repo/typescript-config/react-library.json",
   "include": ["."],
   "compilerOptions": {
-    "lib": ["esnext",],
+    "lib": ["esnext"]
   },
   "exclude": ["dist", "build", "node_modules"]
 }

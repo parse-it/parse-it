@@ -26,8 +26,8 @@ npm install @parse-it/database
 Here is a basic example of how to use the query builder:
 
 ```ts
-import { QueryBuilder, QueryBuilderMode } from "@parse-it/database";
-import { parseBigQuery } from "@parse-it/database";
+import { QueryBuilder, QueryBuilderMode } from "@parse-it/database"
+import { parseBigQuery } from "@parse-it/database"
 
 // Sample SQL query
 const sqlQuery = `
@@ -59,12 +59,12 @@ FROM EarliestRegistrationDates e
 JOIN CurrentlyActiveUsers c
   ON e.id = c.id;`
 
-const queryNode = parseBigQuery(sqlQuery);
+const queryNode = parseBigQuery(sqlQuery)
 
-const queryBuilder = new QueryBuilder(QueryBuilderMode.NAMED);
-const query = queryBuilder.build(queryNode);
+const queryBuilder = new QueryBuilder(QueryBuilderMode.NAMED)
+const query = queryBuilder.build(queryNode)
 
-console.log(query);
+console.log(query)
 ```
 
 ## API
@@ -86,6 +86,7 @@ Builds the SQL query string from the given query node.
 ### `QueryBuilderMode`
 
 An enumeration of the query builder modes:
+
 - `SIMPLE`
 - `NAMED`
 - `POSITIONAL`

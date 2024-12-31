@@ -1,5 +1,5 @@
-import { defineConfig } from "tsup";
-import { EsbuildPeggyPlugin } from "./src/scripts/peggy.plugin";
+import { defineConfig } from "tsup"
+import { EsbuildPeggyPlugin } from "./src/scripts/peggy.plugin"
 
 export default defineConfig({
   entry: ["src/index.ts"],
@@ -10,4 +10,4 @@ export default defineConfig({
     ".pegjs": "ts",
   },
   esbuildPlugins: [EsbuildPeggyPlugin()],
-});
+})

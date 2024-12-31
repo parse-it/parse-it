@@ -1,20 +1,20 @@
-import { ExpressionNode, SubQueryNode, TableNode } from "../types";
+import { ExpressionNode, SubQueryNode, TableNode } from "../types"
 
 export const checkIsFromTable = (
-  value: TableNode | SubQueryNode
+  value: TableNode | SubQueryNode,
 ): value is TableNode => {
-  return Object.hasOwn(value, "name");
-};
+  return Object.hasOwn(value, "name")
+}
 
 export function traverseExpression(
   expression: ExpressionNode,
-  callback: (operand: string | number | string[], operator?: string) => void
+  callback: (operand: string | number | string[], operator?: string) => void,
 ): void {
-  if (expression === null) return;
+  if (expression === null) return
   if (typeof expression.left === "string") {
-    callback(expression.left, expression.operator);
+    callback(expression.left, expression.operator)
   } else if (typeof expression.left === "object") {
-    traverseExpression(expression.left, callback);
+    traverseExpression(expression.left, callback)
   }
 
   if (
@@ -22,18 +22,18 @@ export function traverseExpression(
     typeof expression.right === "object" &&
     !Array.isArray(expression.right)
   ) {
-    traverseExpression(expression.right, callback);
+    traverseExpression(expression.right, callback)
   } else if (expression.right) {
-    callback(expression.right, expression.operator);
+    callback(expression.right, expression.operator)
   }
 }
 
 export const applyMaybeClause = <T>(
   value: T | null | undefined,
-  builder: (value?: T) => string
+  builder: (value?: T) => string,
 ): string => {
   if ((Array.isArray(value) && !value.length) || typeof value == "undefined")
-    return "";
-  if (value === null) return builder();
-  return builder(value);
-};
+    return ""
+  if (value === null) return builder()
+  return builder(value)
+}

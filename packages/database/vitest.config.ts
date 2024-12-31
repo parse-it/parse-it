@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config";
-import { VitePeggyPlugin } from "./src/scripts/peggy.plugin";
+import { defineConfig } from "vitest/config"
+import { VitePeggyPlugin } from "./src/scripts/peggy.plugin"
 
 export default defineConfig({
   test: {
@@ -7,4 +7,4 @@ export default defineConfig({
     environment: "node",
   },
   plugins: [VitePeggyPlugin()],
-});
+})
