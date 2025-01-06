@@ -32,9 +32,10 @@ export type SubQueryNode = {
   alias?: string
 }
 
+export type JOIN_TYPE = "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS" | "JOIN"
 export type JoinNode = {
   type: "join"
-  joinType: "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS"
+  joinType: JOIN_TYPE
   table: TableNode | SubQueryNode
   on: ExpressionNode
 }
@@ -70,7 +71,7 @@ export type UnionNode = {
 
 export type ExpressionNode = {
   type: "expression"
-  left: string | ExpressionNode
+  left: string | number | ExpressionNode
   operator?: string
   right?: string | number | ExpressionNode | string[]
 }
