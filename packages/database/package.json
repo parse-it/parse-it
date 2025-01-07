@@ -1,44 +1,43 @@
 {
-    "name": "@parse-it/database",
-    "version": "0.3.0",
-    "description": "A simple query builder for TypeScript",
-    "main": "dist/index.js",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "type": "module",
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsup src/index.ts --format cjs,esm --dts",
-        "dev": "tsup --watch",
-        "test": "vitest run",
-        "test:watch": "vitest"
-    },
-    "keywords": [
-        "typescript",
-        "library"
-    ],
-    "author": "Mikiyas Amdu",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/parse-it/parse-it.git",
-        "directory": "packages/database"
-    },
-    "bugs": {
-        "url": "https://github.com/parse-it/parse-it/issues"
-    },
-    "homepage": "https://github.com/parse-it/parse-it#readme",
-    "devDependencies": {
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "vitest": "^2.1.8"
-    },
-    "dependencies": {
-        "peggy": "^4.2.0"
-    },
-    "publishConfig": {
-        "access": "public"
-    }
+  "name": "@parse-it/database",
+  "version": "0.3.2",
+  "description": "A simple query builder for TypeScript",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "typescript",
+    "library"
+  ],
+  "author": "Mikiyas Amdu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parse-it/parse-it.git",
+    "directory": "packages/database"
+  },
+  "bugs": {
+    "url": "https://github.com/parse-it/parse-it/issues"
+  },
+  "homepage": "https://github.com/parse-it/parse-it#readme",
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "peggy": "^4.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

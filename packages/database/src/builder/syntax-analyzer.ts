@@ -1,4 +1,4 @@
-import { QueryNode } from "../types"
+import { ExpressionNode, QueryNode } from "../types"
 import { ValidationRule } from "./mode"
 import { ValidationError } from "./validation.error"
 
@@ -14,7 +14,16 @@ export class SyntaxAnalyzer implements ValidationRule {
 
 function validateGroupByMatchSelect(query: QueryNode) {
   const errors: ValidationError[] = []
-  const selectColumns = query.selects.map((s) => s.alias || s.expression.left)
+  const selectKeyFromExpression = (left: ExpressionNode["left"]) => {
+    if (typeof left === "string") {
+      const parts = left.split("as")
+      return parts.length > 1 ? parts[1].trim() : parts[0].trim()
+    }
+    return left
+  }
+  const selectColumns = query.selects.map(
+    (s) => s.alias || selectKeyFromExpression(s.expression.left),
+  )
   const groupByColumns = query.groupBy?.columns || []
 
   groupByColumns.forEach((column) => {
