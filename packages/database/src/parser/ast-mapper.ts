@@ -211,6 +211,11 @@ export class ASTMapper {
           type: "expression",
           left: `${aggrFunctionName}(${aggrFunctionArgs})`,
         }
+      case "expr_list":
+        return {
+          type: "expression",
+          left: expr.value.map((arg: any) => this.mapExpression(arg).left),
+        }
 
       case "single_quote_string":
       case "null":
