@@ -13,9 +13,17 @@ import {
  * @param args
  * @returns
  */
-export function select(...args: string[]): SelectNode[] {
+export function select(
+  ...args: (string | { name: string; alias: string })[]
+): SelectNode[] {
   return args.map((arg) => {
-    return { type: "select", expression: { type: "expression", left: arg } }
+    const val = typeof arg === "string" ? arg : arg.name
+    const alias = typeof arg === "string" ? undefined : arg.alias
+    return {
+      type: "select",
+      expression: { type: "expression", left: val },
+      alias,
+    }
   })
 }
 
@@ -30,7 +38,7 @@ export type JoinHelperArgs = [
 
 /**
  * Constructs a JoinNode representing a SQL JOIN clause with the given arguments.
- * 
+ *
  * @param args - An array containing the table, first column, operator, second column, and optional join type.
  *   - table: The table to join, either as a string or an object with table details.
  *   - first: The first column in the join condition.
@@ -120,7 +128,7 @@ export function joinWhere(...args: JoinHelperArgs): JoinNode {
 
 /**
  * Constructs a FilterNode representing a WHERE clause with the given conditions and boolean operator.
- * 
+ *
  * @param conditions - An array of condition objects, each containing a column, operator, and value.
  * @param booleanOperator - The boolean operator to combine the conditions, either "AND" or "OR". Defaults to "AND".
  * @returns A FilterNode representing the WHERE clause.
