@@ -5,7 +5,7 @@ import { ExpressionNode, FilterNode } from "../../types"
  * @param value - Value to wrap.
  * @returns Wrapped value.
  */
-function valueWrapper(
+export function valueWrapper(
   value: string | number | string[] | number[],
 ): string | number {
   if (Array.isArray(value)) {
@@ -23,7 +23,7 @@ function valueWrapper(
  * @param booleanOperator - Boolean operator to use between conditions ("AND" or "OR").
  * @returns A nested `ExpressionNode`.
  */
-function conditions(
+export function conditions(
   conditions: {
     column: string
     operator: string
@@ -81,7 +81,7 @@ function conditions(
  * @param operator - Boolean operator to use between the top-level conditions ("AND" or "OR").
  * @returns A `FilterNode`.
  */
-function where(
+export function where(
   conditions: ExpressionNode[] | ExpressionNode,
   operator: "AND" | "OR" = "AND",
 ): FilterNode {
@@ -92,4 +92,72 @@ function where(
   }
 }
 
-export { conditions, where }
+export function updateOrAddCondition(
+  filter: FilterNode,
+  newCondition: ExpressionNode,
+  operator: "AND" | "OR" = "AND",
+): FilterNode {
+  let updated = false
+
+  // Recursively update the condition if it exists
+  const updatedConditions = filter.conditions.map((condition) => {
+    const result = updateCondition(condition, newCondition)
+    if (result) {
+      updated = true
+    }
+    return result || condition
+  })
+
+  if (updated) {
+    return { ...filter, conditions: updatedConditions }
+  }
+
+  return {
+    ...filter,
+    conditions: [...filter.conditions, newCondition],
+  }
+}
+
+// Helper to recursively update a condition
+export function updateCondition(
+  node: ExpressionNode,
+  newCondition: ExpressionNode,
+): ExpressionNode | null {
+  if (isConditionEqual(node, newCondition)) {
+    return newCondition
+  }
+
+  // Check if `left` or `right` are nested ExpressionNodes
+  const updatedLeft =
+    typeof node.left === "object" && node.left.type === "expression"
+      ? updateCondition(node.left, newCondition)
+      : node.left
+
+  const updatedRight =
+    typeof node.right === "object" &&
+    !Array.isArray(node.right) &&
+    node.right.type === "expression"
+      ? updateCondition(node.right, newCondition)
+      : node.right
+
+  if (!updatedLeft && !updatedRight) {
+    return null
+  }
+
+  return {
+    ...node,
+    left: updatedLeft || node.left,
+    right: updatedRight || node.right,
+  }
+}
+
+export function isConditionEqual(
+  cond1: ExpressionNode,
+  cond2: ExpressionNode,
+): boolean {
+  return (
+    JSON.stringify(cond1.left) === JSON.stringify(cond2.left) &&
+    cond1.operator === cond2.operator &&
+    JSON.stringify(cond1.right) === JSON.stringify(cond2.right)
+  )
+}
