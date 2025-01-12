@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest"
-import { QueryBuilder, QueryBuilderMode } from "../src"
-import { groupBy, join, orderBy, select, where } from "../src/builder/helper"
+import {
+  ASTMapper,
+  parseBigQuery,
+  QueryBuilder,
+  QueryBuilderMode,
+} from "../src"
+import {
+  conditions,
+  groupBy,
+  join,
+  orderBy,
+  select,
+  where,
+} from "../src/builder/helper"
 import { QueryNode } from "../src/types"
 
 describe("QueryBuilder", () => {
@@ -23,7 +35,7 @@ describe("QueryBuilder", () => {
       type: "query",
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
-      where: where([{ column: "age", operator: ">", value: 18 }]),
+      where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
     }
     const queryBuilder = new QueryBuilder(QueryBuilderMode.SIMPLE)
     const queryObject = queryBuilder.build(queryNode)
@@ -37,7 +49,7 @@ describe("QueryBuilder", () => {
       type: "query",
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
-      where: where([{ column: "age", operator: ">", value: 18 }]),
+      where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
       orderBy: [],
       limit: 10,
     }
@@ -53,7 +65,7 @@ describe("QueryBuilder", () => {
       type: "query",
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
-      where: where([{ column: "age", operator: ">", value: 18 }]),
+      where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
       orderBy: [],
       limit: 10,
       offset: 5,
@@ -70,7 +82,7 @@ describe("QueryBuilder", () => {
       type: "query",
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
-      where: where([{ column: "age", operator: ">", value: 18 }]),
+      where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
       orderBy: [orderBy("name")],
       limit: 10,
       offset: 5,
@@ -87,7 +99,7 @@ describe("QueryBuilder", () => {
       type: "query",
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
-      where: where([{ column: "age", operator: ">", value: 18 }]),
+      where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
       groupBy: groupBy("name"),
       orderBy: [orderBy("name")],
       limit: 10,
