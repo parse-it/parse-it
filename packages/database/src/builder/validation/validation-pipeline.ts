@@ -1,6 +1,6 @@
 // import { QueryNode, Schema, ValidationRule } from "../query.model";
-import { QueryNode } from "../types"
-import { Schema, ValidationRule } from "./mode"
+import { QueryNode } from "../../types"
+import { Schema, ValidationRule } from "../mode"
 import { ValidationError } from "./validation.error"
 
 export class ValidationPipeline {

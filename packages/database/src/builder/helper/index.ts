@@ -1,9 +1,19 @@
-import { GroupByNode, OrderByNode } from "../../types"
+import { GroupByNode, OrderByNode, SubQueryNode, TableNode } from "../../types"
 
 export * from "./join"
 export * from "./select"
 export * from "./where"
 
+/**
+ *
+ * @param fromNode
+ * @returns
+ */
+export function from(fromNode: string | TableNode | SubQueryNode | string) {
+  return typeof fromNode === "string"
+    ? ({ type: "table", name: fromNode } as TableNode)
+    : fromNode
+}
 /**
  *
  * @param columns

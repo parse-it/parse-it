@@ -10,32 +10,15 @@ import {
   TableNode,
   WithNode,
 } from "../types"
-import { groupBy, select, valueWrapper } from "./helper"
-import { LexicalAnalyzer } from "./lexical-analyzer"
+import { ExpressionBuilder } from "./expression-builder"
+import { groupBy, select } from "./helper"
 import { Schema } from "./mode"
-import { SchemaValidator } from "./schema-validator"
-import { SyntaxAnalyzer } from "./syntax-analyzer"
+import { ParameterManager, QueryBuilderMode } from "./parameter.manager"
 import { applyMaybeClause, checkIsFromTable } from "./util"
-import { ValidationPipeline } from "./validation-pipeline"
-
-/**
- * Enum representing the different modes of the QueryBuilder for BigQuery.
- *
- * - SIMPLE: This mode is used for basic query building without any parameterization.
- *   Example Output: `SELECT * FROM users WHERE age > 30`
- *   Note: if you get part of the query from user input, you should use a different mode to prevent SQL injection.
- *
- * - NAMED: This mode allows for named parameters in the query, which can be replaced with actual values at runtime.
- *   Example Output: `SELECT * FROM users WHERE age > @age`
- *
- * - POSITIONAL: This mode uses positional parameters in the query, which are replaced with actual values based on their position.
- *   Example Output: `SELECT * FROM users WHERE age > ?`
- */
-export enum QueryBuilderMode {
-  SIMPLE = "SIMPLE",
-  NAMED = "NAMED",
-  POSITIONAL = "POSITIONAL",
-}
+import { LexicalAnalyzer } from "./validation/lexical-analyzer"
+import { SchemaValidator } from "./validation/schema-validator"
+import { SyntaxAnalyzer } from "./validation/syntax-analyzer"
+import { ValidationPipeline } from "./validation/validation-pipeline"
 
 /**
  * Interface representing the result of a query build operation.
@@ -49,104 +32,6 @@ export interface QueryBuildResult {
    * The parameters to be used in the query. This can be a record of named parameters or an array of positional parameters.
    */
   parameters?: Record<string, any> | any[]
-}
-
-class ParameterManager {
-  private parameters: Record<string, any> | any[]
-  private paramIndex: number
-  private readonly mode: QueryBuilderMode
-
-  constructor(mode: QueryBuilderMode) {
-    this.mode = mode
-    this.parameters = mode === QueryBuilderMode.NAMED ? {} : []
-    this.paramIndex = 1
-  }
-
-  addParameter(value: any): string {
-    if (this.mode === QueryBuilderMode.SIMPLE) {
-      return `${value}`
-    }
-
-    if (this.mode === QueryBuilderMode.NAMED) {
-      const paramName = `param${this.paramIndex++}`
-      ;(this.parameters as Record<string, any>)[paramName] = value
-      return `@${paramName}`
-    }
-
-    ;(this.parameters as any[]).push(value)
-    this.paramIndex++
-    return "?"
-  }
-
-  addParameters(values: any[]): string[] {
-    return values.map((value) => this.addParameter(value))
-  }
-
-  getParameters() {
-    return this.mode === QueryBuilderMode.SIMPLE ? undefined : this.parameters
-  }
-}
-
-class ExpressionBuilder {
-  constructor(private paramManager: ParameterManager) {}
-
-  buildExpression(expr: ExpressionNode): string {
-    if (this.isSimpleLiteral(expr)) {
-      return this.paramManager.addParameter(expr.left)
-    }
-
-    if (expr.operator && expr.right) {
-      return this.buildBinaryExpression(expr)
-    }
-
-    if (expr.left === null) {
-      return "NULL"
-    }
-
-    if (expr.type === "expression") {
-      return this.buildExpressionValue(expr)
-    }
-
-    if (typeof expr.left === "object" && expr.left.type === "expression") {
-      return this.buildExpression(expr.left)
-    }
-
-    throw new Error(`Unsupported expression: ${JSON.stringify(expr)}`)
-  }
-
-  private isSimpleLiteral(expr: ExpressionNode) {
-    return (
-      (typeof expr.left === "string" || typeof expr.left === "number") &&
-      !expr.operator &&
-      !expr.right
-    )
-  }
-
-  private buildBinaryExpression(expr: ExpressionNode) {
-    const leftPart = this.buildExpression(expr.left as ExpressionNode)
-    const rightPart = this.buildExpression(expr.right as ExpressionNode)
-
-    if (this.needsParentheses(expr)) {
-      return `(${leftPart} ${expr.operator} ${rightPart})`
-    }
-    return `${leftPart} ${expr.operator} ${rightPart}`
-  }
-
-  private needsParentheses(expr: ExpressionNode): boolean {
-    return (
-      typeof expr.left === "object" &&
-      typeof expr.right === "object" &&
-      !Array.isArray(expr.right) &&
-      (expr.left.type === "expression" || expr.right.type === "expression") &&
-      expr.operator === "OR"
-    )
-  }
-
-  private buildExpressionValue(expr: ExpressionNode) {
-    return Array.isArray(expr.left)
-      ? valueWrapper(expr.left) + ""
-      : JSON.stringify(expr.left)
-  }
 }
 
 export class QueryBuilder {

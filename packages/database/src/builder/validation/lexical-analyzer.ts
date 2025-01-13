@@ -1,6 +1,7 @@
-import { QueryNode } from "../types"
-import { ValidationRule } from "./mode"
-import { traverseExpression } from "./util"
+import { QueryNode } from "../../types"
+import { select } from "../helper"
+import { ValidationRule } from "../mode"
+import { traverseExpression } from "../util"
 import { ValidationError } from "./validation.error"
 
 export class LexicalAnalyzer implements ValidationRule {
@@ -162,9 +163,10 @@ function validateReservedKeywords(
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
-  query.selects.forEach((select) => {
-    if (select.expression == null) return
-    traverseExpression(select.expression, (operand) => {
+  query.selects.forEach((selectNode) => {
+    const normalizedSelect = select(selectNode)[0]
+    if (normalizedSelect.expression == null) return
+    traverseExpression(normalizedSelect.expression, (operand) => {
       if (
         typeof operand === "string" &&
         reservedKeywords.includes(operand.toUpperCase())

@@ -6,9 +6,10 @@ import { SelectNode } from "../../types"
  * @returns
  */
 export function select(
-  ...args: (string | { name: string; alias: string })[]
+  ...args: (string | SelectNode | { name: string; alias: string })[]
 ): SelectNode[] {
   return args.map((arg) => {
+    if (isSelectNode(arg)) return arg
     const val = typeof arg === "string" ? arg : arg.name
     const alias = typeof arg === "string" ? undefined : arg.alias
     return {
@@ -17,4 +18,8 @@ export function select(
       alias,
     }
   })
+}
+
+export function isSelectNode(arg: any): arg is SelectNode {
+  return arg.type === "select"
 }

@@ -1,6 +1,6 @@
-import { ExpressionNode, QueryNode } from "../types"
-import { groupBy, select } from "./helper"
-import { ValidationRule } from "./mode"
+import { ExpressionNode, QueryNode } from "../../types"
+import { groupBy, select } from "../helper"
+import { ValidationRule } from "../mode"
 import { ValidationError } from "./validation.error"
 
 export class SyntaxAnalyzer implements ValidationRule {
