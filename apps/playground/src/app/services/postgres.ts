@@ -16,6 +16,15 @@ class PostgresClient {
   }
 }
 
+/**
+ * ! This is not secure and 100% for testing purposes only
+ */
+export async function queryPostgres(query: string) {
+  const client = PostgresClient.init()
+  const res = await client.query(query)
+  return res.rows
+}
+
 export async function getUserCount() {
   const res = await PostgresClient.query("SELECT COUNT(*) FROM users")
   return res[0].count
