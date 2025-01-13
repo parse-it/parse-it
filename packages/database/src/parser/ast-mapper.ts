@@ -214,10 +214,14 @@ export class ASTMapper {
       case "expr_list":
         return {
           type: "expression",
-          left: expr.value.map((arg: any) => this.mapExpression(arg).left),
+          left: `(${expr.value.map((arg: any) => this.mapExpression(arg).left).join(", ")})`,
         }
 
       case "single_quote_string":
+        return {
+          type: "expression",
+          left: `'${expr.value}'`,
+        }
       case "null":
       case "number":
       case "string":

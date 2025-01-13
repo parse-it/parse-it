@@ -10,7 +10,7 @@ import {
   TableNode,
   WithNode,
 } from "../types"
-import { select, groupBy } from "./helper"
+import { groupBy, select, valueWrapper } from "./helper"
 import { LexicalAnalyzer } from "./lexical-analyzer"
 import { Schema } from "./mode"
 import { SchemaValidator } from "./schema-validator"
@@ -135,7 +135,8 @@ export class QueryBuilder {
       },
       {
         value: queryNode.where,
-        builder: (v: FilterNode) => this.buildWhereClause(v, buildExpression),
+        builder: (v: FilterNode) =>
+          this.buildWhereClause(v, this.mode, parameters, paramIndex),
       },
       {
         value: queryNode.groupBy,
@@ -196,14 +197,14 @@ export class QueryBuilder {
       .join(", ")
   }
 
-  private buildFromClause(from: TableNode | SubQueryNode | string) {
-    const f =
-      typeof from === "string"
-        ? ({ type: "table", name: from } as TableNode)
-        : from
-    return checkIsFromTable(f)
-      ? `FROM ${f.name}${f.alias ? ` AS ${f.alias}` : ""}`
-      : `FROM (${this.build(f.query).query})${f.alias ? ` AS ${f.alias}` : ""}`
+  private buildFromClause(fromNode: TableNode | SubQueryNode | string) {
+    const from =
+      typeof fromNode === "string"
+        ? ({ type: "table", name: fromNode } as TableNode)
+        : fromNode
+    return checkIsFromTable(from)
+      ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`
+      : `FROM (${this.build(from.query).query})${from.alias ? ` AS ${from.alias}` : ""}`
   }
 
   private buildJoinClause(
@@ -220,11 +221,108 @@ export class QueryBuilder {
       .join(" ")
   }
 
+  buildWhereExpression = (
+    expr: ExpressionNode,
+    mode: QueryBuilderMode,
+    parameters: Record<string, any> | any[],
+    paramIndex: number,
+  ): string => {
+    const isLiteral = (value: any) =>
+      typeof value === "string" || typeof value === "number"
+
+    // Handle literals
+    if (isLiteral(expr.left) && !expr.operator && !expr.right) {
+      if (mode === QueryBuilderMode.NAMED) {
+        const paramName = `param${paramIndex++}`
+        ;(parameters as Record<string, any>)[paramName] = expr.left
+        return `@${paramName}`
+      } else if (mode === QueryBuilderMode.POSITIONAL) {
+        ;(parameters as any[]).push(expr.left)
+        paramIndex++
+        return `?`
+      }
+      return `${expr.left}`
+    }
+
+    // Handle `IN` operator with arrays
+    if (Array.isArray(expr.left) && expr.operator === "IN") {
+      const placeholders = expr.left.map((value) => {
+        if (mode === QueryBuilderMode.NAMED) {
+          const paramName = `param${paramIndex++}`
+          ;(parameters as Record<string, any>)[paramName] = value
+          return `@${paramName}`
+        } else if (mode === QueryBuilderMode.POSITIONAL) {
+          ;(parameters as any[]).push(value)
+          return `?`
+        }
+        return value
+      })
+      return `${expr.left} ${expr.operator} (${placeholders.join(", ")})`
+    }
+
+    // Handle grouped conditions
+    if (expr.operator && expr.right) {
+      const leftPart = this.buildWhereExpression(
+        expr.left as ExpressionNode,
+        mode,
+        parameters,
+        paramIndex,
+      )
+      const rightPart = this.buildWhereExpression(
+        expr.right as ExpressionNode,
+        mode,
+        parameters,
+        paramIndex,
+      )
+
+      // Add parentheses only for grouping conditions
+      const needsParens =
+        typeof expr.left === "object" &&
+        typeof expr.right == "object" &&
+        !Array.isArray(expr.right) &&
+        (expr.left.type === "expression" || expr.right.type === "expression") &&
+        expr.operator === "OR"
+      if (needsParens) {
+        return `(${leftPart} ${expr.operator} ${rightPart})`
+      }
+      return `${leftPart} ${expr.operator} ${rightPart}`
+    }
+
+    if (expr.left === null) {
+      return "NULL"
+    }
+
+    if (expr.type === "expression") {
+      return Array.isArray(expr.left)
+        ? valueWrapper(expr.left) + ""
+        : JSON.stringify(expr.left)
+    }
+
+    // Recursively handle nested expressions
+    if (typeof expr.left === "object" && expr.left.type === "expression") {
+      return this.buildWhereExpression(expr.left, mode, parameters, paramIndex)
+    }
+
+    throw new Error(`Unsupported expression: ${JSON.stringify(expr)}`)
+  }
+
   private buildWhereClause(
     where: FilterNode,
-    buildExpression: (expr: ExpressionNode) => string,
-  ) {
-    return `WHERE ${buildExpression(where.conditions[0])}`
+    mode: QueryBuilderMode,
+    parameters: Record<string, any> | any[],
+    paramIndex: number,
+  ): string {
+    if (!where.conditions || where.conditions.length === 0) {
+      return ""
+    }
+
+    const whereClause = where.conditions
+      .map((condition) =>
+        this.buildWhereExpression(condition, mode, parameters, paramIndex),
+      )
+      .join(` ${where.operator} `)
+
+    return `WHERE ${whereClause}`
   }
 
   private buildGroupByClause(_groupBy: GroupByNode | string | string[]) {
