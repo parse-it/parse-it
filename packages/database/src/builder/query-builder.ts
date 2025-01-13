@@ -10,6 +10,7 @@ import {
   TableNode,
   WithNode,
 } from "../types"
+import { select, groupBy } from "./helper"
 import { LexicalAnalyzer } from "./lexical-analyzer"
 import { Schema } from "./mode"
 import { SchemaValidator } from "./schema-validator"
@@ -138,7 +139,8 @@ export class QueryBuilder {
       },
       {
         value: queryNode.groupBy,
-        builder: (v: GroupByNode) => this.buildGroupByClause(v),
+        builder: (v: GroupByNode | string | string[]) =>
+          this.buildGroupByClause(v),
       },
       {
         value: queryNode.having,
@@ -178,9 +180,13 @@ export class QueryBuilder {
   }
 
   private buildSelectClause(
-    selects: SelectNode[],
+    selects: SelectNode[] | string[],
     buildExpression: (expr: ExpressionNode) => string,
   ) {
+    selects = selects.map((s) => {
+      if (typeof s === "string") return select(s)[0]
+      return s
+    })
     return selects
       .map((select) =>
         select.alias
@@ -190,10 +196,14 @@ export class QueryBuilder {
       .join(", ")
   }
 
-  private buildFromClause(from: TableNode | SubQueryNode) {
-    return checkIsFromTable(from)
-      ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`
-      : `FROM (${this.build(from.query).query})${from.alias ? ` AS ${from.alias}` : ""}`
+  private buildFromClause(from: TableNode | SubQueryNode | string) {
+    const f =
+      typeof from === "string"
+        ? ({ type: "table", name: from } as TableNode)
+        : from
+    return checkIsFromTable(f)
+      ? `FROM ${f.name}${f.alias ? ` AS ${f.alias}` : ""}`
+      : `FROM (${this.build(f.query).query})${f.alias ? ` AS ${f.alias}` : ""}`
   }
 
   private buildJoinClause(
@@ -217,8 +227,9 @@ export class QueryBuilder {
     return `WHERE ${buildExpression(where.conditions[0])}`
   }
 
-  private buildGroupByClause(groupBy: GroupByNode) {
-    return `GROUP BY ${groupBy.columns.join(", ")}`
+  private buildGroupByClause(_groupBy: GroupByNode | string | string[]) {
+    _groupBy = groupBy(_groupBy)
+    return `GROUP BY ${_groupBy.columns.join(", ")}`
   }
 
   private buildHavingClause(

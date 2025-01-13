@@ -33,7 +33,6 @@ export function conditions(
 ): ExpressionNode {
   if (conditions.length === 1) {
     const { column, operator, value } = conditions[0]
-    console.log(conditions[0])
     return {
       type: "expression",
       left: { type: "expression", left: column },

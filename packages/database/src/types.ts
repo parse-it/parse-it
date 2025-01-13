@@ -1,10 +1,10 @@
 export type QueryNode = {
   type: "query"
-  selects: SelectNode[]
-  from: TableNode | SubQueryNode
+  selects: SelectNode[] | string[]
+  from: TableNode | SubQueryNode | string
   joins?: JoinNode[]
   where?: FilterNode
-  groupBy?: GroupByNode
+  groupBy?: GroupByNode | string | string[]
   having?: FilterNode
   orderBy?: OrderByNode[]
   limit?: number

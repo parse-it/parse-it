@@ -81,7 +81,7 @@ describe("QueryBuilder", () => {
     const queryNode: QueryNode = {
       type: "query",
       selects: [...select("name", "email")],
-      from: { type: "table", name: "users" },
+      from: "users",
       where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
       orderBy: [orderBy("name")],
       limit: 10,
@@ -100,7 +100,7 @@ describe("QueryBuilder", () => {
       selects: [...select("name", "email")],
       from: { type: "table", name: "users" },
       where: where(conditions([{ column: "age", operator: ">", value: 18 }])),
-      groupBy: groupBy("name"),
+      groupBy: "name",
       orderBy: [orderBy("name")],
       limit: 10,
       offset: 5,

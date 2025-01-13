@@ -9,8 +9,11 @@ export * from "./where"
  * @param columns
  * @returns
  */
-export function groupBy(...columns: string[]): GroupByNode {
-  return { type: "groupby", columns }
+export function groupBy(columns: string[] | string | GroupByNode): GroupByNode {
+  if (typeof columns === "string")
+    return { type: "groupby", columns: [columns] }
+  if (Array.isArray(columns)) return { type: "groupby", columns }
+  return columns
 }
 
 /**
