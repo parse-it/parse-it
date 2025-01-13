@@ -6,7 +6,7 @@ import { ExpressionNode, FilterNode } from "../../types"
  * @returns Wrapped value.
  */
 export function valueWrapper(
-  value: string | number | string[] | number[],
+  value: string | number | (string | number)[],
 ): string | number {
   if (Array.isArray(value)) {
     return `(${value.map(valueWrapper).join(",")})`
@@ -91,6 +91,93 @@ export function where(
   }
 }
 
+/**
+ * Updates a condition in a filter node or adds a new condition if no match is found.
+ *
+ * @param {FilterNode} filter - The filter object containing a list of conditions.
+ * @param {ExpressionNode} newCondition - The new condition to add or update in the filter.
+ * @param {"AND" | "OR"} [operator="AND"] - The operator to use when adding the new condition.
+ * @returns {FilterNode} - The updated filter node with the condition updated or added.
+ *
+ * @example
+ * Input Filter:
+ * {
+ *   operator: "AND",
+ *   conditions: [
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "age" },
+ *       operator: ">",
+ *       right: { type: "expression", left: 18 }
+ *     },
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "name" },
+ *       operator: "LIKE",
+ *       right: { type: "expression", left: "'John%'" }
+ *     }
+ *   ]
+ * }
+ *
+ * New Condition:
+ * {
+ *   type: "expression",
+ *   left: { type: "expression", left: "age" },
+ *   operator: ">=",
+ *   right: { type: "expression", left: 21 }
+ * }
+ *
+ * Process:
+ * 1. Check if the `newCondition` matches any existing conditions in `filter.conditions`.
+ * 2. If a match is found:
+ *    - Update the matched condition.
+ * 3. If no match is found:
+ *    - Add the `newCondition` to the list of conditions with the specified operator.
+ *
+ * Updated Filter (Match Found):
+ * {
+ *   operator: "AND",
+ *   conditions: [
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "age" },
+ *       operator: ">=",
+ *       right: { type: "expression", left: 21 }
+ *     },
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "name" },
+ *       operator: "LIKE",
+ *       right: { type: "expression", left: "'John%'" }
+ *     }
+ *   ]
+ * }
+ *
+ * Updated Filter (No Match Found):
+ * {
+ *   operator: "AND",
+ *   conditions: [
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "age" },
+ *       operator: ">",
+ *       right: { type: "expression", left: 18 }
+ *     },
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "name" },
+ *       operator: "LIKE",
+ *       right: { type: "expression", left: "'John%'" }
+ *     },
+ *     {
+ *       type: "expression",
+ *       left: { type: "expression", left: "age" },
+ *       operator: ">=",
+ *       right: { type: "expression", left: 21 }
+ *     }
+ *   ]
+ * }
+ */
 export function updateOrAddCondition(
   filter: FilterNode,
   newCondition: ExpressionNode,
@@ -98,7 +185,6 @@ export function updateOrAddCondition(
 ): FilterNode {
   let updated = false
 
-  // Recursively update the condition if it exists
   const updatedConditions = filter.conditions.map((condition) => {
     const result = updateCondition(condition, newCondition)
     if (result) {
@@ -117,37 +203,72 @@ export function updateOrAddCondition(
   }
 }
 
-// Helper to recursively update a condition
+/**
+ * Updates an expression tree by replacing the parent node if a match is found for the `left` property in the `newCondition`.
+ * If no match is found, the function returns `null`.
+ *
+ * @param {ExpressionNode} node - The root node of the expression tree to be updated.
+ * @param {ExpressionNode} newCondition - The new condition to replace the matched node in the tree.
+ * @returns {ExpressionNode | null} - The updated tree if a match is found; otherwise, `null`.
+ *
+ * @example
+ * Input SQL = "SELECT * FROM users WHERE age > 18 AND name LIKE 'John%'"
+ * New Condition SQL = "SELECT * FROM users WHERE age > 21 AND name LIKE 'John%'"
+ * Input Tree:
+ *                  AND
+ *                /     \
+ *              >         LIKE
+ *            /   \      /    \
+ *         age     18  name   'John%'
+ *
+ * New Condition:
+ *                  >
+ *                /   \
+ *             age    21
+ *
+ * Output Tree (Match Found):
+ *                  AND
+ *                /     \
+ *              >         LIKE
+ *            /   \      /    \
+ *         age     21  name   'John%'
+ *
+ * If no match is found, the function returns `null`.
+ */
 export function updateCondition(
   node: ExpressionNode,
   newCondition: ExpressionNode,
 ): ExpressionNode | null {
-  if (isConditionEqual(node, newCondition)) {
-    return newCondition
+  let matchFound = false
+
+  function traverseAndUpdate(node: ExpressionNode): ExpressionNode {
+    if (
+      node.type === "expression" &&
+      typeof node.left === "object" &&
+      node.left.type === "expression" &&
+      typeof newCondition.left === "object" &&
+      isConditionEqual(node.left, newCondition.left)
+    ) {
+      matchFound = true
+      return newCondition
+    }
+    const updatedLeft =
+      typeof node.left === "object" && node.left.type === "expression"
+        ? traverseAndUpdate(node.left)
+        : node.left
+
+    const updatedRight =
+      typeof node.right === "object" && node.right.type === "expression"
+        ? traverseAndUpdate(node.right)
+        : node.right
+    return {
+      ...node,
+      left: updatedLeft,
+      right: updatedRight,
+    }
   }
-
-  // Check if `left` or `right` are nested ExpressionNodes
-  const updatedLeft =
-    typeof node.left === "object" && node.left.type === "expression"
-      ? updateCondition(node.left, newCondition)
-      : node.left
-
-  const updatedRight =
-    typeof node.right === "object" &&
-    !Array.isArray(node.right) &&
-    node.right.type === "expression"
-      ? updateCondition(node.right, newCondition)
-      : node.right
-
-  if (!updatedLeft && !updatedRight) {
-    return null
-  }
-
-  return {
-    ...node,
-    left: updatedLeft || node.left,
-    right: updatedRight || node.right,
-  }
+  const updatedNode = traverseAndUpdate(node)
+  return matchFound ? updatedNode : null
 }
 
 export function isConditionEqual(
@@ -155,8 +276,9 @@ export function isConditionEqual(
   cond2: ExpressionNode,
 ): boolean {
   return (
-    JSON.stringify(cond1.left) === JSON.stringify(cond2.left) &&
+    cond1.type === cond2.type &&
     cond1.operator === cond2.operator &&
+    JSON.stringify(cond1.left) === JSON.stringify(cond2.left) &&
     JSON.stringify(cond1.right) === JSON.stringify(cond2.right)
   )
 }

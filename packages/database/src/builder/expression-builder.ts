@@ -2,6 +2,23 @@ import { ExpressionNode } from "../types"
 import { valueWrapper } from "./helper"
 import { ParameterManager } from "./parameter.manager"
 
+/**
+ * Handles the construction and management of SQL expressions.
+ * Provides methods to safely build complex SQL expressions while maintaining proper operator precedence.
+ *
+ * @class ExpressionBuilder
+ * @internal
+ *
+ * @example
+ * ```typescript
+ * const builder = new ExpressionBuilder(parameterManager);
+ * const expr = builder.buildExpression({
+ *   left: 'column',
+ *   operator: '=',
+ *   right: { left: 'value', type: 'expression' }
+ * });
+ * ```
+ */
 export class ExpressionBuilder {
   constructor(private paramManager: ParameterManager) {}
 

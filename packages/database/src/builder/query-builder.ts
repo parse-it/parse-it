@@ -21,7 +21,19 @@ import { SyntaxAnalyzer } from "./validation/syntax-analyzer"
 import { ValidationPipeline } from "./validation/validation-pipeline"
 
 /**
- * Interface representing the result of a query build operation.
+ * Represents the result of a query building operation.
+ *
+ * @interface QueryBuildResult
+ * @property {string} query - The generated SQL query string
+ * @property {Record<string, any> | any[] | undefined} parameters - Query parameters (if any)
+ *
+ * @example
+ * ```typescript
+ * const result: QueryBuildResult = {
+ *   query: "SELECT * FROM users WHERE id = @param1",
+ *   parameters: { param1: 123 }
+ * };
+ * ```
  */
 export interface QueryBuildResult {
   /**
@@ -34,6 +46,60 @@ export interface QueryBuildResult {
   parameters?: Record<string, any> | any[]
 }
 
+/**
+ * A powerful and flexible SQL query builder with support for parameterized queries and schema validation.
+ *
+ * @class QueryBuilder
+ * @exports
+ *
+ * @example
+ * Basic Usage:
+ * ```typescript
+ * const builder = new QueryBuilder(QueryBuilderMode.NAMED);
+ * const result = builder.build({
+ *   selects: ['column1', 'column2'],
+ *   from: 'table_name',
+ *   where: {
+ *     conditions: [{ left: 'column1', operator: '=', right: { left: 'value', type: 'expression' } }],
+ *     operator: 'AND'
+ *   }
+ * });
+ * // result.query = "SELECT column1, column2 FROM table_name WHERE column1 = @param1"
+ * // result.parameters = { param1: 'value' }
+ * ```
+ *
+ * Complex Query:
+ * ```typescript
+ * const result = builder.build({
+ *   with: [{
+ *     name: 'cte',
+ *     query: {
+ *       selects: ['col1', 'col2'],
+ *       from: 'source_table'
+ *     }
+ *   }],
+ *   selects: ['t.col1', 't.col2'],
+ *   from: 'cte t',
+ *   joins: [{
+ *     joinType: 'LEFT',
+ *     table: { type: 'table', name: 'other_table', alias: 'o' },
+ *     on: { left: 't.id', operator: '=', right: { left: 'o.id', type: 'expression' } }
+ *   }],
+ *   groupBy: ['t.col1'],
+ *   having: {
+ *     conditions: [{ left: 'COUNT(*)', operator: '>', right: { left: 5, type: 'expression' } }],
+ *     operator: 'AND'
+ *   }
+ * });
+ * ```
+ *
+ * @param {QueryBuilderMode} [mode=QueryBuilderMode.NAMED] - The parameter mode to use for query building
+ *
+ * @throws {Error} Will throw an error if query validation fails
+ *
+ * @see {@link QueryBuilderMode} for available parameter modes
+ * @see {@link QueryBuildResult} for the structure of the build result
+ */
 export class QueryBuilder {
   private readonly validationPipeline: ValidationPipeline
   private mode: QueryBuilderMode

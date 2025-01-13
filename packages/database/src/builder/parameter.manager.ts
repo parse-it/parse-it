@@ -17,6 +17,20 @@ export enum QueryBuilderMode {
   POSITIONAL = "POSITIONAL",
 }
 
+/**
+ * Manages query parameters across different modes (Simple, Named, Positional).
+ * Handles the generation and storage of query parameters in a type-safe manner.
+ *
+ * @class ParameterManager
+ * @internal
+ *
+ * @example
+ * ```typescript
+ * const manager = new ParameterManager(QueryBuilderMode.NAMED);
+ * const param = manager.addParameter('value'); // Returns "@param1"
+ * const parameters = manager.getParameters(); // Returns { param1: 'value' }
+ * ```
+ */
 export class ParameterManager {
   private parameters: Record<string, any> | any[]
   private paramIndex: number
