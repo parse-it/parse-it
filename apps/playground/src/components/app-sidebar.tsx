@@ -29,7 +29,7 @@ interface SidebarItem {
 const items: SidebarItem[] = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: Home,
   },
   {
