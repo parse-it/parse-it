@@ -76,7 +76,7 @@ function validateColumnExistenceInSchema(
 
 function validateColumnExistenceInWhere(
   query: QueryNode,
-  columns: string[], // Assuming columns is a list of valid column names for the schema
+  columns: string[],
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
