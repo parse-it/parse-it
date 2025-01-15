@@ -37,16 +37,15 @@ export function ChatForm({
   const header = (
     <header className="m-auto flex max-w-96 flex-col gap-5 text-center">
       <h1 className="text-2xl font-semibold leading-none tracking-tight">
-        Basic AI Chatbot Template
+        AI Chatbot with Database Access
       </h1>
       <p className="text-muted-foreground text-sm">
-        This is an AI chatbot app template built with{" "}
-        <span className="text-foreground">Next.js</span>, the{" "}
-        <span className="text-foreground">Vercel AI SDK</span>, and{" "}
-        <span className="text-foreground">Vercel KV</span>.
+        This chatbot can answer questions about the connected database by
+        generating and executing SQL queries.
       </p>
       <p className="text-muted-foreground text-sm">
-        Connect an API Key from your provider and send a message to get started.
+        Ask questions like "How many users are there?" or "What's the total
+        amount of completed orders?"
       </p>
     </header>
   )
@@ -68,7 +67,7 @@ export function ChatForm({
   return (
     <main
       className={cn(
-        "ring-none mx-auto flex h-svh max-h-svh w-full max-w-[35rem] flex-col items-stretch border-none",
+        "ring-none mx-auto flex min-h-[600px] w-full max-w-[35rem] flex-col items-stretch border-none",
         className,
       )}
       {...props}
