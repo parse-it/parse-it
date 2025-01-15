@@ -186,11 +186,24 @@ export function updateOrAddCondition(
   let updated = false
 
   const updatedConditions = filter.conditions.map((condition) => {
-    const result = updateCondition(condition, newCondition)
-    if (result) {
-      updated = true
+    if (condition.type === "filter") {
+      const updatedFilter = updateOrAddCondition(
+        condition,
+        newCondition,
+        operator,
+      )
+      if (updatedFilter !== condition) {
+        updated = true
+      }
+      return updatedFilter
+    } else if (condition.type === "expression") {
+      const result = updateCondition(condition, newCondition)
+      if (result) {
+        updated = true
+        return result
+      }
     }
-    return result || condition
+    return condition
   })
 
   if (updated) {

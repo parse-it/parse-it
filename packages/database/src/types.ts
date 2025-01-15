@@ -1,6 +1,6 @@
 export type QueryNode = {
   type: "query"
-  selects: SelectNode[] | string[]
+  selects: (SelectNode | string)[]
   from: TableNode | SubQueryNode | string
   joins?: JoinNode[]
   where?: FilterNode
@@ -43,7 +43,7 @@ export type JoinNode = {
 export type FilterNode = {
   type: "filter"
   operator: "AND" | "OR"
-  conditions: ExpressionNode[]
+  conditions: (ExpressionNode | FilterNode)[]
 }
 
 export type GroupByNode = {

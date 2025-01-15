@@ -58,20 +58,7 @@ export class ExpressionBuilder {
     const leftPart = this.buildExpression(expr.left as ExpressionNode)
     const rightPart = this.buildExpression(expr.right as ExpressionNode)
 
-    if (this.needsParentheses(expr)) {
-      return `(${leftPart} ${expr.operator} ${rightPart})`
-    }
     return `${leftPart} ${expr.operator} ${rightPart}`
-  }
-
-  private needsParentheses(expr: ExpressionNode): boolean {
-    return (
-      typeof expr.left === "object" &&
-      typeof expr.right === "object" &&
-      !Array.isArray(expr.right) &&
-      (expr.left.type === "expression" || expr.right.type === "expression") &&
-      expr.operator === "OR"
-    )
   }
 
   private buildExpressionValue(expr: ExpressionNode) {
