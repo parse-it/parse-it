@@ -151,41 +151,40 @@ export class ASTMapper {
         conditions: [this.mapExpression(node)],
       }
     }
-
-    if (node.operator === "AND" || node.operator === "OR") {
-      if (node.parentheses) {
-        return {
-          type: "filter",
-          operator: node.operator,
-          conditions: [
-            ...this.buildConditions(node.left),
-            ...this.buildConditions(node.right),
-          ],
-        }
-      } else {
-        const leftConditions =
-          node.left.operator === node.operator && !node.left.parentheses
-            ? this.buildConditions(node.left)
-            : [this.processNode(node.left)]
-
-        const rightConditions =
-          node.right.operator === node.operator && !node.right.parentheses
-            ? this.buildConditions(node.right)
-            : [this.processNode(node.right)]
-
-        return {
-          type: "filter",
-          operator: node.operator,
-          conditions: [...leftConditions, ...rightConditions],
-        }
+    if (!["AND", "OR"].includes(node.operator)) {
+      // For comparison operators (>, <, =, etc.)
+      return {
+        type: "filter",
+        operator: "AND",
+        conditions: [this.mapExpression(node)],
       }
     }
 
-    // For comparison operators (>, <, =, etc.)
+    if (node.parentheses) {
+      return {
+        type: "filter",
+        operator: node.operator,
+        conditions: [
+          ...this.buildConditions(node.left),
+          ...this.buildConditions(node.right),
+        ],
+      }
+    }
+
+    const leftConditions =
+      node.left.operator === node.operator && !node.left.parentheses
+        ? this.buildConditions(node.left)
+        : [this.processNode(node.left)]
+
+    const rightConditions =
+      node.right.operator === node.operator && !node.right.parentheses
+        ? this.buildConditions(node.right)
+        : [this.processNode(node.right)]
+
     return {
       type: "filter",
-      operator: "AND",
-      conditions: [this.mapExpression(node)],
+      operator: node.operator,
+      conditions: [...leftConditions, ...rightConditions],
     }
   }
 
