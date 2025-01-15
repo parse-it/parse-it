@@ -1,4 +1,4 @@
-import { QueryNode } from "../../types"
+import { ExpressionNode, FilterNode, QueryNode } from "../../types"
 import { select } from "../helper"
 import { ValidationRule } from "../mode"
 import { traverseExpression } from "../util"
@@ -191,9 +191,11 @@ function validateOperators(
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
-  ;(query.where?.conditions || []).forEach((condition) => {
-    if (condition === null) return
-    traverseExpression(condition, (operand, operator) => {
+  const traverseCondition = (condition: ExpressionNode | FilterNode) => {
+    if (condition.type === "filter") {
+      condition.conditions.forEach(traverseCondition)
+    } else if (condition.type === "expression") {
+      const { operator } = condition
       if (operator && !validOperators.includes(operator)) {
         errors.push(
           new ValidationError(
@@ -203,8 +205,9 @@ function validateOperators(
           ),
         )
       }
-    })
-  })
+    }
+  }
+  query.where?.conditions.forEach(traverseCondition)
 
   return errors
 }

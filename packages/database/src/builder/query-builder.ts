@@ -224,7 +224,7 @@ export class QueryBuilder {
   }
 
   private buildSelectClause(
-    selects: SelectNode[] | string[],
+    selects: (SelectNode | string)[],
     buildExpression: (expr: ExpressionNode) => string,
   ) {
     const normalizedSelects = selects.map((s) =>
@@ -274,6 +274,33 @@ export class QueryBuilder {
         }`
   }
 
+  /**
+   * Generates a SQL `WHERE` clause from a structured `FilterNode`.
+   *
+   * Recursively processes the `FilterNode` and its conditions to produce a
+   * SQL-compliant `WHERE` clause. Ensures logical grouping with parentheses
+   * only where necessary.
+   *
+   * @param {FilterNode} where - The root filter node containing the query conditions.
+   * @param {ExpressionBuilder} expressionBuilder - Utility to convert `ExpressionNode` to SQL.
+   * @returns {string}
+   *
+   * @example
+   * const filterNode = {
+   *   type: "filter",
+   *   operator: "AND",
+   *   conditions: [
+   *     { type: "expression", operator: ">", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } },
+   *     { type: "filter", operator: "OR", conditions: [
+   *       { type: "expression", operator: "=", left: { type: "expression", left: "name" }, right: { type: "expression", left: "'John'" } },
+   *       { type: "expression", operator: "<", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } }
+   *     ]}
+   *   ]
+   * };
+   *
+   * buildWhereClause(filterNode, expressionBuilder);
+   * // WHERE age > 18 AND (name = 'John' OR age < 18)
+   */
   private buildWhereClause(
     where: FilterNode,
     expressionBuilder: ExpressionBuilder,
@@ -282,8 +309,30 @@ export class QueryBuilder {
       return ""
     }
 
+    const buildCondition = (
+      condition: ExpressionNode | FilterNode,
+      parentOperator?: string,
+    ): string => {
+      if (condition.type === "filter") {
+        const nestedConditions = condition.conditions
+          .map((nestedCondition) =>
+            buildCondition(nestedCondition, condition.operator),
+          )
+          .join(` ${condition.operator} `)
+
+        // Add parentheses only if the nested operator differs from the parent operator
+        if (parentOperator && parentOperator !== condition.operator) {
+          return `(${nestedConditions})`
+        }
+
+        return nestedConditions
+      } else {
+        return expressionBuilder.buildExpression(condition as ExpressionNode)
+      }
+    }
+
     const whereClause = where.conditions
-      .map((condition) => expressionBuilder.buildExpression(condition))
+      .map((condition) => buildCondition(condition, where.operator))
       .join(` ${where.operator} `)
 
     return `WHERE ${whereClause}`
@@ -297,8 +346,28 @@ export class QueryBuilder {
   private buildHavingClause(
     having: FilterNode,
     buildExpression: (expr: ExpressionNode) => string,
-  ) {
-    return `HAVING ${buildExpression(having.conditions[0])}`
+  ): string {
+    if (!having.conditions || having.conditions.length === 0) {
+      return ""
+    }
+
+    const buildCondition = (condition: ExpressionNode | FilterNode): string => {
+      if (condition.type === "filter") {
+        const nestedConditions = condition.conditions
+          .map((nestedCondition) => buildCondition(nestedCondition))
+          .join(` ${condition.operator} `)
+
+        return `(${nestedConditions})`
+      } else {
+        return buildExpression(condition as ExpressionNode)
+      }
+    }
+
+    const havingClause = having.conditions
+      .map((condition) => buildCondition(condition))
+      .join(` ${having.operator} `)
+
+    return `HAVING ${havingClause}`
   }
 
   private buildOrderByClause(orderBy: OrderByNode[]) {

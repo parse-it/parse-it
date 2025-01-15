@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest"
-import {
-  ASTMapper,
-  parseBigQuery,
-  QueryBuilder,
-  QueryBuilderMode,
-} from "../src"
+import { ASTMapper, parseBigQuery, QueryBuilder } from "../src"
 import { conditions, join, orderBy, where } from "../src/builder/helper"
+import { QueryBuilderMode } from "../src/builder/parameter.manager"
 import { QueryNode } from "../src/types"
 
 describe("QueryBuilder", () => {
@@ -113,6 +109,18 @@ describe("QueryBuilder", () => {
     const queryObject = queryBuilder.build(queryNode)
     expect(queryObject.query).toBe(
       "SELECT name, email FROM users JOIN orders ON users.id = orders.user_id",
+    )
+  })
+
+  it("should convert SQL to QueryNode", () => {
+    const sql = `SELECT name, email FROM users WHERE age > 18 AND name = 'John' OR (age < 18 AND name = 'Doe' OR (age = 18 AND name = 'Smith'))`
+    const mapper = new ASTMapper()
+    const mappedAST = mapper.map(parseBigQuery(sql))
+    const queryBuilder = new QueryBuilder(QueryBuilderMode.SIMPLE)
+    const queryObject = queryBuilder.build(mappedAST)
+
+    expect(queryObject.query).toBe(
+      "SELECT name, email FROM users WHERE (age > 18 AND name = 'John') OR (age < 18 AND name = 'Doe') OR (age = 18 AND name = 'Smith')",
     )
   })
 })

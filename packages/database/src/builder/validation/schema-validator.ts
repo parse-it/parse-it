@@ -1,5 +1,6 @@
 import {
   ExpressionNode,
+  FilterNode,
   QueryNode,
   SelectNode,
   SubQueryNode,
@@ -28,8 +29,8 @@ export class SchemaValidator implements ValidationRule {
     }
 
     return [
-      ...validateColumnExistenceInSchema(query as QueryNode, tableSchema),
-      ...validateColumnExistenceInWhere(query as QueryNode, tableSchema),
+      ...validateColumnExistenceInSchema(query, tableSchema),
+      ...validateColumnExistenceInWhere(query, tableSchema),
     ]
   }
 }
@@ -75,9 +76,8 @@ function validateColumnExistenceInSchema(
 
 function validateColumnExistenceInWhere(
   query: QueryNode,
-  columns: Schema[string],
+  columns: string[], // Assuming columns is a list of valid column names for the schema
 ): ValidationError[] {
-  const fromNode = from(query.from)
   const errors: ValidationError[] = []
 
   function validateExpressionNode(
@@ -85,8 +85,9 @@ function validateColumnExistenceInWhere(
     from: TableNode | SubQueryNode,
   ): void {
     if (typeof expression.left === "string") {
+      // Validate column existence in the table or schema
       if (!columns.includes(expression.left)) {
-        if (!checkIsFromTable(from)) return
+        if (from.type !== "table") return // Skip validation for subqueries
         errors.push(
           new ValidationError(
             `Column '${expression.left}' does not exist in table '${from.name}'.`,
@@ -96,6 +97,7 @@ function validateColumnExistenceInWhere(
         )
       }
     } else if (typeof expression.left === "object") {
+      // Recursively validate nested expressions
       validateExpressionNode(expression.left, from)
     }
 
@@ -109,10 +111,24 @@ function validateColumnExistenceInWhere(
     }
   }
 
+  function validateCondition(
+    condition: ExpressionNode | FilterNode,
+    from: TableNode | SubQueryNode,
+  ): void {
+    if (condition.type === "filter") {
+      condition.conditions.forEach((nestedCondition) =>
+        validateCondition(nestedCondition, from),
+      )
+    } else if (condition.type === "expression") {
+      validateExpressionNode(condition, from)
+    }
+  }
+
+  const fromNode = from(query.from)
   if (query.where?.conditions) {
-    query.where.conditions.forEach((filter) => {
+    query.where.conditions.forEach((condition) => {
       if (fromNode.type === "table") {
-        validateExpressionNode(filter, fromNode)
+        validateCondition(condition, fromNode)
       } else if (fromNode.type === "subquery") {
         validateColumnExistenceInWhere(fromNode.query, columns)
       }
