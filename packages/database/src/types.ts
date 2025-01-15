@@ -1,10 +1,10 @@
 export type QueryNode = {
   type: "query"
-  selects: SelectNode[]
-  from: TableNode | SubQueryNode
+  selects: (SelectNode | string)[]
+  from: TableNode | SubQueryNode | string
   joins?: JoinNode[]
   where?: FilterNode
-  groupBy?: GroupByNode
+  groupBy?: GroupByNode | string | string[]
   having?: FilterNode
   orderBy?: OrderByNode[]
   limit?: number
@@ -43,7 +43,7 @@ export type JoinNode = {
 export type FilterNode = {
   type: "filter"
   operator: "AND" | "OR"
-  conditions: ExpressionNode[]
+  conditions: (ExpressionNode | FilterNode)[]
 }
 
 export type GroupByNode = {
@@ -71,7 +71,7 @@ export type UnionNode = {
 
 export type ExpressionNode = {
   type: "expression"
-  left: string | number | ExpressionNode
+  left: string | number | boolean | ExpressionNode
   operator?: string
-  right?: string | number | ExpressionNode | string[]
+  right?: string | number | boolean | ExpressionNode
 }

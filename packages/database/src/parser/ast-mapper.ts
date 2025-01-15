@@ -86,12 +86,120 @@ export class ASTMapper {
     }))
   }
 
+  /**
+   * Converts a filter AST into a structured `FilterNode`. The top-level node is always
+   * a `FilterNode` where logical conditions are grouped accurately.
+   *
+   * - Logical expressions (`AND`, `OR`) with `"parentheses": true` are grouped into a new `FilterNode`.
+   * - Logical expressions without `"parentheses": true` are flattened into the parent `FilterNode`.
+   * - Binary expressions (`>`, `<`, `=`, etc.) are mapped to `ExpressionNode` with `operator`, `left`, and `right`.
+   *
+   * ### Example Input SQL:
+   *
+   * ```sql
+   * SELECT name, email FROM users WHERE age > 18 AND name = 'John' OR (age < 18 AND name = 'Doe' OR (age = 18 AND name = 'Smith'))
+   * ```
+   * The AST will be:
+   *
+   * ```json
+   * OR(
+   *   AND(age > 18, name = 'John'),
+   *   OR(
+   *     AND(age < 18, name = 'Doe'),
+   *     AND(age = 18, name = 'Smith')  // with parentheses
+   *   )  // with parentheses
+   * )
+   * ```
+   *
+   * Output `FilterNode`:
+   * ```typescript
+   * {
+   *   type: "filter",
+   *   operator: "AND",
+   *   conditions: [
+   *      ... more conditions ...
+   *     { type: "expression", operator: ">", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } },
+   *     { type: "filter", operator: "OR", conditions: [
+   *       { type: "expression", operator: "=", left: { type: "expression", left: "name" }, right: { type: "expression", left: "'John'" } },
+   *       { type: "expression", operator: "<", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } }
+   *     ]}
+   *   ]
+   * }
+   * ```
+   *
+   * Output SQL representation:
+   * ```sql
+   * WHERE (age > 18 AND name = 'John') OR ((age < 18 AND name = 'Doe') OR (age = 18 AND name = 'Smith'))
+   * ```
+   *
+   * @param filter - The input AST representing the filter conditions.
+   * @returns
+   */
   private mapFilter(filter: any): FilterNode {
+    if (!filter || typeof filter !== "object" || !filter.type) {
+      throw new Error(`Invalid filter node: ${JSON.stringify(filter)}`)
+    }
+
+    return this.processNode(filter)
+  }
+
+  private processNode(node: any): FilterNode {
+    if (node.type !== "binary_expr") {
+      return {
+        type: "filter",
+        operator: "AND",
+        conditions: [this.mapExpression(node)],
+      }
+    }
+    if (!["AND", "OR"].includes(node.operator)) {
+      // For comparison operators (>, <, =, etc.)
+      return {
+        type: "filter",
+        operator: "AND",
+        conditions: [this.mapExpression(node)],
+      }
+    }
+
+    if (node.parentheses) {
+      return {
+        type: "filter",
+        operator: node.operator,
+        conditions: [
+          ...this.buildConditions(node.left),
+          ...this.buildConditions(node.right),
+        ],
+      }
+    }
+
+    const leftConditions =
+      node.left.operator === node.operator && !node.left.parentheses
+        ? this.buildConditions(node.left)
+        : [this.processNode(node.left)]
+
+    const rightConditions =
+      node.right.operator === node.operator && !node.right.parentheses
+        ? this.buildConditions(node.right)
+        : [this.processNode(node.right)]
+
     return {
       type: "filter",
-      operator: "AND",
-      conditions: [this.mapExpression(filter)],
+      operator: node.operator,
+      conditions: [...leftConditions, ...rightConditions],
     }
+  }
+
+  private buildConditions(node: any): (ExpressionNode | FilterNode)[] {
+    if (!node) return []
+
+    if (node.type !== "binary_expr") {
+      return [this.mapExpression(node)]
+    }
+
+    if (node.operator === "AND" || node.operator === "OR") {
+      return [this.processNode(node)]
+    }
+
+    return [this.mapExpression(node)]
   }
 
   private mapGroupBy(groupby: any): GroupByNode {
@@ -214,10 +322,14 @@ export class ASTMapper {
       case "expr_list":
         return {
           type: "expression",
-          left: expr.value.map((arg: any) => this.mapExpression(arg).left),
+          left: `(${expr.value.map((arg: any) => this.mapExpression(arg).left).join(", ")})`,
         }
 
       case "single_quote_string":
+        return {
+          type: "expression",
+          left: `'${expr.value}'`,
+        }
       case "null":
       case "number":
       case "string":

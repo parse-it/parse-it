@@ -8,13 +8,16 @@ export const checkIsFromTable = (
 
 /**
  * Traverses an expression tree and applies a callback function to each operand and operator.
- * 
+ *
  * @param expression - The expression tree to traverse, represented by an ExpressionNode.
  * @param callback - A function that takes an operand (string, number, or string[]) and an optional operator (string).
  */
 export function traverseExpression(
   expression: ExpressionNode,
-  callback: (operand: string | number | string[], operator?: string) => void,
+  callback: (
+    operand: string | number | boolean | string[],
+    operator?: string,
+  ) => void,
 ): void {
   if (expression === null) return
   if (typeof expression.left === "string") {
