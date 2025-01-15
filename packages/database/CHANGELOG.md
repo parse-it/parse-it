@@ -1,5 +1,12 @@
 # @parse-it/database
 
+## 0.3.5
+
+### Patch Changes
+
+- 47a0b0e: Update select helper and expand on syntax analyzer
+- 39503e6: bump version
+
 ## 0.3.0
 
 ### Minor Changes
