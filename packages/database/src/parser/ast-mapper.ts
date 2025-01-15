@@ -115,73 +115,19 @@ export class ASTMapper {
    * ```typescript
    * {
    *   type: "filter",
-   *   operator: "OR",
+   *   operator: "AND",
    *   conditions: [
-   *     {
-   *       type: "filter",
-   *       operator: "AND",
-   *       conditions: [
-   *         {
-   *           type: "expression",
-   *           operator: ">",
-   *           left: { type: "expression", left: "age" },
-   *           right: { type: "expression", left: 18 }
-   *         },
-   *         {
-   *           type: "expression",
-   *           operator: "=",
-   *           left: { type: "expression", left: "name" },
-   *           right: { type: "expression", left: "'John'" }
-   *         }
-   *       ]
-   *     },
-   *     {
-   *       type: "filter",
-   *       operator: "OR",
-   *       conditions: [
-   *         {
-   *           type: "filter",
-   *           operator: "AND",
-   *           conditions: [
-   *             {
-   *               type: "expression",
-   *               operator: "<",
-   *               left: { type: "expression", left: "age" },
-   *               right: { type: "expression", left: 18 }
-   *             },
-   *             {
-   *               type: "expression",
-   *               operator: "=",
-   *               left: { type: "expression", left: "name" },
-   *               right: { type: "expression", left: "'Doe'" }
-   *             }
-   *           ]
-   *         },
-   *         {
-   *           type: "filter",
-   *           operator: "AND",
-   *           conditions: [
-   *             {
-   *               type: "expression",
-   *               operator: "=",
-   *               left: { type: "expression", left: "age" },
-   *               right: { type: "expression", left: 18 }
-   *             },
-   *             {
-   *               type: "expression",
-   *               operator: "=",
-   *               left: { type: "expression", left: "name" },
-   *               right: { type: "expression", left: "'Smith'" }
-   *             }
-   *           ]
-   *         }
-   *       ]
-   *     }
+   *      ... more conditions ...
+   *     { type: "expression", operator: ">", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } },
+   *     { type: "filter", operator: "OR", conditions: [
+   *       { type: "expression", operator: "=", left: { type: "expression", left: "name" }, right: { type: "expression", left: "'John'" } },
+   *       { type: "expression", operator: "<", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } }
+   *     ]}
    *   ]
    * }
    * ```
    *
-   * Output SQL:
+   * Output SQL representation:
    * ```sql
    * WHERE (age > 18 AND name = 'John') OR ((age < 18 AND name = 'Doe') OR (age = 18 AND name = 'Smith'))
    * ```
