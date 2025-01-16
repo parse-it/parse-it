@@ -71,7 +71,7 @@ export type UnionNode = {
 
 export type ExpressionNode = {
   type: "expression"
-  left: string | number | boolean | ExpressionNode
+  left: string | number | boolean | ExpressionNode | QueryNode
   operator?: string
-  right?: string | number | boolean | ExpressionNode
+  right?: string | number | boolean | ExpressionNode | QueryNode
 }

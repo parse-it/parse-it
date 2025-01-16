@@ -1,4 +1,4 @@
-import { ExpressionNode, SubQueryNode, TableNode } from "../types"
+import { ExpressionNode, QueryNode, SubQueryNode, TableNode } from "../types"
 
 export const checkIsFromTable = (
   value: TableNode | SubQueryNode,
@@ -15,21 +15,25 @@ export const checkIsFromTable = (
 export function traverseExpression(
   expression: ExpressionNode,
   callback: (
-    operand: string | number | boolean | string[],
+    operand: string | number | boolean | string[] | ExpressionNode | QueryNode,
     operator?: string,
   ) => void,
 ): void {
   if (expression === null) return
   if (typeof expression.left === "string") {
     callback(expression.left, expression.operator)
-  } else if (typeof expression.left === "object") {
+  } else if (
+    typeof expression.left === "object" &&
+    expression.left.type === "expression"
+  ) {
     traverseExpression(expression.left, callback)
   }
 
   if (
     expression.right &&
     typeof expression.right === "object" &&
-    !Array.isArray(expression.right)
+    !Array.isArray(expression.right) &&
+    expression.right.type === "expression"
   ) {
     traverseExpression(expression.right, callback)
   } else if (expression.right) {

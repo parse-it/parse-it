@@ -260,6 +260,7 @@ export function updateCondition(
       typeof node.left === "object" &&
       node.left.type === "expression" &&
       typeof newCondition.left === "object" &&
+      newCondition.left.type === "expression" &&
       isConditionEqual(node.left, newCondition.left)
     ) {
       matchFound = true
