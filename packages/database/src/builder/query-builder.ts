@@ -225,16 +225,20 @@ export class QueryBuilder {
 
   private buildSelectClause(
     selects: (SelectNode | string)[],
-    buildExpression: (expr: ExpressionNode) => string,
+    buildExpression: (
+      expr: ExpressionNode,
+      customParamManager?: ParameterManager,
+    ) => string,
   ) {
     const normalizedSelects = selects.map((s) =>
       typeof s === "string" ? select(s)[0] : s,
     )
+    const paramManager = new ParameterManager(QueryBuilderMode.SIMPLE)
     return normalizedSelects
       .map((select) =>
         select.alias
-          ? `${buildExpression(select.expression)} AS ${select.alias}`
-          : buildExpression(select.expression),
+          ? `${buildExpression(select.expression, paramManager)} AS ${select.alias}`
+          : buildExpression(select.expression, paramManager),
       )
       .join(", ")
   }
