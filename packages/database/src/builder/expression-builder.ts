@@ -22,9 +22,13 @@ import { ParameterManager } from "./parameter.manager"
 export class ExpressionBuilder {
   constructor(private paramManager: ParameterManager) {}
 
-  buildExpression(expr: ExpressionNode): string {
+  buildExpression(
+    expr: ExpressionNode,
+    customParamManager?: ParameterManager,
+  ): string {
+    const currentParamManager = customParamManager || this.paramManager
     if (this.isSimpleLiteral(expr)) {
-      return this.paramManager.addParameter(expr.left)
+      return currentParamManager.addParameter(expr.left)
     }
 
     if (expr.operator && expr.right) {

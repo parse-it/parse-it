@@ -96,7 +96,10 @@ function validateColumnExistenceInWhere(
           ),
         )
       }
-    } else if (typeof expression.left === "object") {
+    } else if (
+      typeof expression.left === "object" &&
+      expression.left.type !== "query"
+    ) {
       // Recursively validate nested expressions
       validateExpressionNode(expression.left, from)
     }
@@ -104,6 +107,7 @@ function validateColumnExistenceInWhere(
     if (expression.right) {
       if (
         typeof expression.right === "object" &&
+        expression.right.type !== "query" &&
         !Array.isArray(expression.right)
       ) {
         validateExpressionNode(expression.right, from)

@@ -1,31 +1,53 @@
+import { QueryBuilder, QueryBuilderMode } from "../builder"
 import {
   ExpressionNode,
   FilterNode,
   GroupByNode,
+  JOIN_TYPE,
   JoinNode,
   OrderByNode,
   QueryNode,
   SelectNode,
+  SubQueryNode,
   TableNode,
   WithNode,
 } from "../types"
 import { expressionHandlers } from "./expression.handler"
+import * as Parser from "../grammar/bigquery.pegjs"
+
+type TableColumnAst = Parser.TableColumnAst
+type AST = Parser.AST
+type Select = Parser.Select
+type Join = Parser.Join
+type BaseFrom = Parser.BaseFrom
 
 export class ASTMapper {
-  map(parsedAST: any): QueryNode {
-    const { ast } = parsedAST
-    // Handle array-based AST
-    if (Array.isArray(ast)) {
-      const [mainQuery] = ast // Assuming the main query is the first element
-      return this.map({ ast: mainQuery })
-    }
+  isAST(parsedAST: TableColumnAst | AST | AST[]): parsedAST is AST | AST[] {
+    return (
+      Array.isArray(parsedAST) ||
+      !(parsedAST as TableColumnAst).tableList !== undefined
+    )
+  }
 
-    if (!ast || ast.type !== "select") {
+  isTableColumnAst(
+    parsedAST: TableColumnAst | AST,
+  ): parsedAST is TableColumnAst {
+    return (parsedAST as TableColumnAst).tableList !== undefined
+  }
+
+  map(parsedAST: TableColumnAst | AST): QueryNode {
+    if (this.isAST(parsedAST) && Array.isArray(parsedAST)) {
+      const [mainQuery] = parsedAST as AST[] // Assuming the main query is the first element
+      return this.map({ ast: mainQuery } as TableColumnAst)
+    }
+    let ast = this.isTableColumnAst(parsedAST) ? parsedAST.ast : parsedAST
+
+    if (!ast) {
       throw new Error("Invalid AST: Root node must be a SELECT query.")
     }
+    ast = Array.isArray(ast) ? ast[0] : ast
 
     const withNodes = ast.with ? this.mapWithClauses(ast.with) : []
-
     const result: QueryNode = {
       type: "query",
       with: withNodes,
@@ -44,7 +66,10 @@ export class ASTMapper {
     return JSON.parse(JSON.stringify(result))
   }
 
-  private mapWithClauses(withClauses: any[]): WithNode[] {
+  private mapWithClauses(withClauses: Select["with"]): WithNode[] {
+    if (!Array.isArray(withClauses)) {
+      return []
+    }
     return withClauses.map((cte) => ({
       type: "with",
       name: cte.name.value,
@@ -52,7 +77,7 @@ export class ASTMapper {
     }))
   }
 
-  private mapSelects(columns: any[] | undefined): SelectNode[] {
+  private mapSelects(columns: Select["columns"]): SelectNode[] {
     if (!Array.isArray(columns)) {
       throw new Error("Invalid AST structure: 'columns' must be an array.")
     }
@@ -64,8 +89,26 @@ export class ASTMapper {
     }))
   }
 
-  private mapFrom(from: any[]): TableNode {
-    const mainTable = from[0]
+  private mapFrom(from: Select["from"]): TableNode | SubQueryNode {
+    if (from === null || from === undefined) {
+      throw new Error("Invalid AST structure: 'from' must be an array.")
+    }
+
+    if (!Array.isArray(from)) {
+      return {
+        type: "subquery",
+        query: this.map(from.expr.ast),
+        alias: from.as || undefined,
+      }
+    }
+    const mainTable = from.find((v) => Object.hasOwn(v, "table")) as
+      | BaseFrom
+      | undefined
+    if (!mainTable) {
+      throw new Error(
+        "Invalid AST structure: 'from' must contain a main table.",
+      )
+    }
     return {
       type: "table",
       name: mainTable.table,
@@ -73,17 +116,26 @@ export class ASTMapper {
     }
   }
 
-  private mapJoins(from: any[]): JoinNode[] {
-    return from.slice(1).map((join) => ({
-      type: "join",
-      joinType: join.join.replace(" JOIN", "").toUpperCase(),
-      table: {
-        type: "table",
-        name: join.table,
-        alias: join.as || undefined,
-      },
-      on: this.mapExpression(join.on),
-    }))
+  private mapJoins(from: Select["from"]): JoinNode[] {
+    if (from === null || !Array.isArray(from)) return []
+
+    const isJoin = (v: any): v is Join => Object.hasOwn(v, "join")
+
+    return from
+      .filter((v) => isJoin(v))
+      .map(
+        (join) =>
+          ({
+            type: "join",
+            joinType: join.join as JOIN_TYPE,
+            table: {
+              type: "table",
+              name: join.table,
+              alias: join.as || undefined,
+            },
+            on: this.mapExpression(join.on),
+          }) as JoinNode,
+      )
   }
 
   /**
@@ -218,8 +270,16 @@ export class ASTMapper {
   }
 
   private mapExpression(expr: any): ExpressionNode {
-    if (!expr || typeof expr !== "object" || !expr.type) {
+    if (!expr || typeof expr !== "object") {
       throw new Error(`Invalid expression: ${JSON.stringify(expr)}`)
+    }
+
+    if (expr.ast) {
+      const queryNode = this.map(expr) // Recursively map the nested query AST
+      return {
+        type: "expression",
+        left: queryNode,
+      }
     }
 
     switch (expr.type) {
@@ -243,10 +303,25 @@ export class ASTMapper {
             ? expr.name.name.map((n: any) => n.value).join(".")
             : expr.name?.value || expr.name?.schema?.value || "UNKNOWN_FUNCTION"
 
+        // Handle arguments including nested subqueries
         const functionArgs =
           expr.args?.type === "expr_list" && Array.isArray(expr.args.value)
             ? expr.args.value
-                .map((arg: any) => this.mapExpression(arg).left)
+                .map((arg: any) => {
+                  if (arg.ast) {
+                    const queryNode = this.map(arg.ast) // Map the nested subquery AST
+                    const queryBuilder = new QueryBuilder(
+                      QueryBuilderMode.SIMPLE,
+                    )
+                    const queryObject = queryBuilder.build(queryNode)
+                    return `(${queryObject.query})`
+                  } else if (typeof arg === "object") {
+                    return this.mapExpression(arg).left
+                  } else {
+                    // Fallback for non-object arguments (unlikely case)
+                    return String(arg)
+                  }
+                })
                 .join(", ")
             : ""
 
@@ -264,6 +339,8 @@ export class ASTMapper {
               if (
                 typeof condition.left === "object" &&
                 typeof condition.right === "object" &&
+                condition.left.type != "query" &&
+                condition.right.type != "query" &&
                 !Array.isArray(condition.right)
               ) {
                 return `WHEN ${condition.left.left} ${condition.operator} ${condition.right.left} THEN ${result}`
