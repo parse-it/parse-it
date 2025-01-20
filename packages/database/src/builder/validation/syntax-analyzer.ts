@@ -1,5 +1,6 @@
-import { ExpressionNode, QueryNode } from "../types"
-import { ValidationRule } from "./mode"
+import { ExpressionNode, QueryNode } from "../../types"
+import { groupBy, select } from "../helper"
+import { ValidationRule } from "../mode"
 import { ValidationError } from "./validation.error"
 
 export class SyntaxAnalyzer implements ValidationRule {
@@ -21,10 +22,13 @@ function validateGroupByMatchSelect(query: QueryNode) {
     }
     return left
   }
-  const selectColumns = query.selects.map(
-    (s) => s.alias || selectKeyFromExpression(s.expression.left),
-  )
-  const groupByColumns = query.groupBy?.columns || []
+  const selectColumns = query.selects.map((s) => {
+    if (typeof s === "string") {
+      s = select(s)[0]
+    }
+    return s.alias || selectKeyFromExpression(s.expression.left)
+  })
+  const groupByColumns = groupBy(query.groupBy || []).columns
 
   groupByColumns.forEach((column) => {
     if (!selectColumns.includes(column)) {

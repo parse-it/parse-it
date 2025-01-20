@@ -1,31 +1,4 @@
-import {
-  FilterNode,
-  GroupByNode,
-  JOIN_TYPE,
-  JoinNode,
-  OrderByNode,
-  SelectNode,
-  TableNode,
-} from "../types"
-
-/**
- *
- * @param args
- * @returns
- */
-export function select(
-  ...args: (string | { name: string; alias: string })[]
-): SelectNode[] {
-  return args.map((arg) => {
-    const val = typeof arg === "string" ? arg : arg.name
-    const alias = typeof arg === "string" ? undefined : arg.alias
-    return {
-      type: "select",
-      expression: { type: "expression", left: val },
-      alias,
-    }
-  })
-}
+import { JOIN_TYPE, JoinNode, TableNode } from "../../types"
 
 export type JoinHelperArgs = [
   table: string | Pick<TableNode, "name" | "alias">,
@@ -124,51 +97,4 @@ export function innerJoin(...args: JoinHelperArgs): JoinNode {
 export function joinWhere(...args: JoinHelperArgs): JoinNode {
   const [table, first, operator, second, joinType] = args
   return join(table, first, operator, second, joinType, true)
-}
-
-/**
- * Constructs a FilterNode representing a WHERE clause with the given conditions and boolean operator.
- *
- * @param conditions - An array of condition objects, each containing a column, operator, and value.
- * @param booleanOperator - The boolean operator to combine the conditions, either "AND" or "OR". Defaults to "AND".
- * @returns A FilterNode representing the WHERE clause.
- */
-export function where(
-  conditions: { column: string; operator: string; value: string | number }[],
-  booleanOperator: "AND" | "OR" = "AND",
-): FilterNode {
-  return {
-    type: "filter",
-    operator: booleanOperator,
-    conditions: conditions.map((condition) => {
-      return {
-        type: "expression",
-        left: { type: "expression", left: condition.column },
-        operator: condition.operator,
-        right: { type: "expression", left: condition.value },
-      }
-    }),
-  }
-}
-
-/**
- *
- * @param columns
- * @returns
- */
-export function groupBy(...columns: string[]): GroupByNode {
-  return { type: "groupby", columns }
-}
-
-/**
- *
- * @param column
- * @param direction
- * @returns
- */
-export function orderBy(
-  column: string,
-  direction: "ASC" | "DESC" = "DESC",
-): OrderByNode {
-  return { type: "orderby", column, direction }
 }

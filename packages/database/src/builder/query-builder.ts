@@ -10,34 +10,30 @@ import {
   TableNode,
   WithNode,
 } from "../types"
-import { LexicalAnalyzer } from "./lexical-analyzer"
+import { ExpressionBuilder } from "./expression-builder"
+import { groupBy, select } from "./helper"
 import { Schema } from "./mode"
-import { SchemaValidator } from "./schema-validator"
-import { SyntaxAnalyzer } from "./syntax-analyzer"
+import { ParameterManager, QueryBuilderMode } from "./parameter.manager"
 import { applyMaybeClause, checkIsFromTable } from "./util"
-import { ValidationPipeline } from "./validation-pipeline"
+import { LexicalAnalyzer } from "./validation/lexical-analyzer"
+import { SchemaValidator } from "./validation/schema-validator"
+import { SyntaxAnalyzer } from "./validation/syntax-analyzer"
+import { ValidationPipeline } from "./validation/validation-pipeline"
 
 /**
- * Enum representing the different modes of the QueryBuilder for BigQuery.
+ * Represents the result of a query building operation.
  *
- * - SIMPLE: This mode is used for basic query building without any parameterization.
- *   Example Output: `SELECT * FROM users WHERE age > 30`
- *   Note: if you get part of the query from user input, you should use a different mode to prevent SQL injection.
+ * @interface QueryBuildResult
+ * @property {string} query - The generated SQL query string
+ * @property {Record<string, any> | any[] | undefined} parameters - Query parameters (if any)
  *
- * - NAMED: This mode allows for named parameters in the query, which can be replaced with actual values at runtime.
- *   Example Output: `SELECT * FROM users WHERE age > @age`
- *
- * - POSITIONAL: This mode uses positional parameters in the query, which are replaced with actual values based on their position.
- *   Example Output: `SELECT * FROM users WHERE age > ?`
- */
-export enum QueryBuilderMode {
-  SIMPLE = "SIMPLE",
-  NAMED = "NAMED",
-  POSITIONAL = "POSITIONAL",
-}
-
-/**
- * Interface representing the result of a query build operation.
+ * @example
+ * ```typescript
+ * const result: QueryBuildResult = {
+ *   query: "SELECT * FROM users WHERE id = @param1",
+ *   parameters: { param1: 123 }
+ * };
+ * ```
  */
 export interface QueryBuildResult {
   /**
@@ -50,9 +46,63 @@ export interface QueryBuildResult {
   parameters?: Record<string, any> | any[]
 }
 
+/**
+ * A powerful and flexible SQL query builder with support for parameterized queries and schema validation.
+ *
+ * @class QueryBuilder
+ * @exports
+ *
+ * @example
+ * Basic Usage:
+ * ```typescript
+ * const builder = new QueryBuilder(QueryBuilderMode.NAMED);
+ * const result = builder.build({
+ *   selects: ['column1', 'column2'],
+ *   from: 'table_name',
+ *   where: {
+ *     conditions: [{ left: 'column1', operator: '=', right: { left: 'value', type: 'expression' } }],
+ *     operator: 'AND'
+ *   }
+ * });
+ * // result.query = "SELECT column1, column2 FROM table_name WHERE column1 = @param1"
+ * // result.parameters = { param1: 'value' }
+ * ```
+ *
+ * Complex Query:
+ * ```typescript
+ * const result = builder.build({
+ *   with: [{
+ *     name: 'cte',
+ *     query: {
+ *       selects: ['col1', 'col2'],
+ *       from: 'source_table'
+ *     }
+ *   }],
+ *   selects: ['t.col1', 't.col2'],
+ *   from: 'cte t',
+ *   joins: [{
+ *     joinType: 'LEFT',
+ *     table: { type: 'table', name: 'other_table', alias: 'o' },
+ *     on: { left: 't.id', operator: '=', right: { left: 'o.id', type: 'expression' } }
+ *   }],
+ *   groupBy: ['t.col1'],
+ *   having: {
+ *     conditions: [{ left: 'COUNT(*)', operator: '>', right: { left: 5, type: 'expression' } }],
+ *     operator: 'AND'
+ *   }
+ * });
+ * ```
+ *
+ * @param {QueryBuilderMode} [mode=QueryBuilderMode.NAMED] - The parameter mode to use for query building
+ *
+ * @throws {Error} Will throw an error if query validation fails
+ *
+ * @see {@link QueryBuilderMode} for available parameter modes
+ * @see {@link QueryBuildResult} for the structure of the build result
+ */
 export class QueryBuilder {
-  private validationPipeline: ValidationPipeline
-  private mode: QueryBuilderMode = QueryBuilderMode.NAMED
+  private readonly validationPipeline: ValidationPipeline
+  private mode: QueryBuilderMode
 
   constructor(mode: QueryBuilderMode = QueryBuilderMode.NAMED) {
     this.validationPipeline = new ValidationPipeline([
@@ -80,41 +130,37 @@ export class QueryBuilder {
 
   build(queryNode: QueryNode, schema?: Schema): QueryBuildResult {
     this.validate(queryNode, schema)
+    const paramManager = new ParameterManager(this.mode)
+    const expressionBuilder = new ExpressionBuilder(paramManager)
 
-    const parameters: any[] | Record<string, any> =
-      this.mode === QueryBuilderMode.NAMED ? {} : []
-    let paramIndex = 1 // For positional parameters
+    const query = this.buildQuery(queryNode, expressionBuilder)
 
-    const buildExpression = (expr: ExpressionNode): string => {
-      const isLiteral = (value: any) =>
-        typeof value === "string" || typeof value === "number"
-
-      if (isLiteral(expr.left) && !expr.operator && !expr.right) {
-        if (this.mode === QueryBuilderMode.NAMED) {
-          const paramName = `param${paramIndex}`
-          paramIndex++
-          ;(parameters as Record<string, any>)[paramName] = expr.left
-          return `@${paramName}`
-        } else if (this.mode === QueryBuilderMode.POSITIONAL) {
-          ;(parameters as any[]).push(expr.left)
-          return `?`
-        }
-        return `${expr.left}`
-      }
-
-      if (expr.operator && expr.right) {
-        return `${buildExpression(expr.left as ExpressionNode)} ${
-          expr.operator
-        } ${buildExpression(expr.right as ExpressionNode)}`
-      }
-
-      return expr.left === null ? "NULL" : JSON.stringify(expr.left)
+    return {
+      query,
+      parameters: paramManager.getParameters(),
     }
+  }
 
-    const clauses: Array<{
-      value: unknown
-      builder: (value: any) => string
-    }> = [
+  private buildQuery(
+    queryNode: QueryNode,
+    expressionBuilder: ExpressionBuilder,
+  ) {
+    const queryParts = this.getQueryParts(queryNode, expressionBuilder)
+    return queryParts
+      .map(({ value, builder }) => applyMaybeClause(value, builder))
+      .filter(Boolean)
+      .join(" ")
+      .trim()
+  }
+
+  private getQueryParts(
+    queryNode: QueryNode,
+    expressionBuilder: ExpressionBuilder,
+  ): Array<{
+    value: unknown
+    builder: (value: any) => string
+  }> {
+    return [
       {
         value: queryNode.with,
         builder: (v: WithNode[]) => this.buildWithClause(v),
@@ -122,7 +168,10 @@ export class QueryBuilder {
       {
         value: null,
         builder: () =>
-          `SELECT ${this.buildSelectClause(queryNode.selects, buildExpression)}`,
+          `SELECT ${this.buildSelectClause(
+            queryNode.selects,
+            expressionBuilder.buildExpression.bind(expressionBuilder),
+          )}`,
       },
       {
         value: null,
@@ -130,19 +179,28 @@ export class QueryBuilder {
       },
       {
         value: queryNode.joins,
-        builder: (v: JoinNode[]) => this.buildJoinClause(v, buildExpression),
+        builder: (v: JoinNode[]) =>
+          this.buildJoinClause(
+            v,
+            expressionBuilder.buildExpression.bind(expressionBuilder),
+          ),
       },
       {
         value: queryNode.where,
-        builder: (v: FilterNode) => this.buildWhereClause(v, buildExpression),
+        builder: (v: FilterNode) => this.buildWhereClause(v, expressionBuilder),
       },
       {
         value: queryNode.groupBy,
-        builder: (v: GroupByNode) => this.buildGroupByClause(v),
+        builder: (v: GroupByNode | string | string[]) =>
+          this.buildGroupByClause(v),
       },
       {
         value: queryNode.having,
-        builder: (v: FilterNode) => this.buildHavingClause(v, buildExpression),
+        builder: (v: FilterNode) =>
+          this.buildHavingClause(
+            v,
+            expressionBuilder.buildExpression.bind(expressionBuilder),
+          ),
       },
       {
         value: queryNode.orderBy,
@@ -157,18 +215,6 @@ export class QueryBuilder {
         builder: (v: number) => this.buildOffsetClause(v),
       },
     ]
-
-    const query = clauses
-      .map(({ value, builder }) => applyMaybeClause(value, builder))
-      .filter((sql) => sql)
-      .join(" ")
-      .trim()
-
-    return {
-      query,
-      parameters:
-        this.mode === QueryBuilderMode.SIMPLE ? undefined : parameters,
-    }
   }
 
   private buildWithClause(withNodes: WithNode[]) {
@@ -178,10 +224,13 @@ export class QueryBuilder {
   }
 
   private buildSelectClause(
-    selects: SelectNode[],
+    selects: (SelectNode | string)[],
     buildExpression: (expr: ExpressionNode) => string,
   ) {
-    return selects
+    const normalizedSelects = selects.map((s) =>
+      typeof s === "string" ? select(s)[0] : s,
+    )
+    return normalizedSelects
       .map((select) =>
         select.alias
           ? `${buildExpression(select.expression)} AS ${select.alias}`
@@ -190,10 +239,17 @@ export class QueryBuilder {
       .join(", ")
   }
 
-  private buildFromClause(from: TableNode | SubQueryNode) {
+  private buildFromClause(fromNode: TableNode | SubQueryNode | string) {
+    const from =
+      typeof fromNode === "string"
+        ? ({ type: "table", name: fromNode } as TableNode)
+        : fromNode
+
     return checkIsFromTable(from)
       ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`
-      : `FROM (${this.build(from.query).query})${from.alias ? ` AS ${from.alias}` : ""}`
+      : `FROM (${this.build(from.query).query})${
+          from.alias ? ` AS ${from.alias}` : ""
+        }`
   }
 
   private buildJoinClause(
@@ -202,34 +258,122 @@ export class QueryBuilder {
   ) {
     return joins
       .map((join) => {
-        const table = checkIsFromTable(join.table)
-          ? `${join.table.name}${join.table.alias ? ` AS ${join.table.alias}` : ""}`
-          : `(${this.build(join.table.query).query})${join.table.alias ? ` AS ${join.table.alias}` : ""}`
-        return `${this.mapJoinType(join.joinType)} ${table} ON ${buildExpression(join.on)}`
+        const table = this.buildJoinTable(join.table)
+        return `${this.mapJoinType(join.joinType)} ${table} ON ${buildExpression(
+          join.on,
+        )}`
       })
       .join(" ")
   }
 
-  private buildWhereClause(
-    where: FilterNode,
-    buildExpression: (expr: ExpressionNode) => string,
-  ) {
-    return `WHERE ${buildExpression(where.conditions[0])}`
+  private buildJoinTable(table: TableNode | SubQueryNode) {
+    return checkIsFromTable(table)
+      ? `${table.name}${table.alias ? ` AS ${table.alias}` : ""}`
+      : `(${this.build(table.query).query})${
+          table.alias ? ` AS ${table.alias}` : ""
+        }`
   }
 
-  private buildGroupByClause(groupBy: GroupByNode) {
-    return `GROUP BY ${groupBy.columns.join(", ")}`
+  /**
+   * Generates a SQL `WHERE` clause from a structured `FilterNode`.
+   *
+   * Recursively processes the `FilterNode` and its conditions to produce a
+   * SQL-compliant `WHERE` clause. Ensures logical grouping with parentheses
+   * only where necessary.
+   *
+   * @param {FilterNode} where - The root filter node containing the query conditions.
+   * @param {ExpressionBuilder} expressionBuilder - Utility to convert `ExpressionNode` to SQL.
+   * @returns {string}
+   *
+   * @example
+   * const filterNode = {
+   *   type: "filter",
+   *   operator: "AND",
+   *   conditions: [
+   *     { type: "expression", operator: ">", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } },
+   *     { type: "filter", operator: "OR", conditions: [
+   *       { type: "expression", operator: "=", left: { type: "expression", left: "name" }, right: { type: "expression", left: "'John'" } },
+   *       { type: "expression", operator: "<", left: { type: "expression", left: "age" }, right: { type: "expression", left: 18 } }
+   *     ]}
+   *   ]
+   * };
+   *
+   * buildWhereClause(filterNode, expressionBuilder);
+   * // WHERE age > 18 AND (name = 'John' OR age < 18)
+   */
+  private buildWhereClause(
+    where: FilterNode,
+    expressionBuilder: ExpressionBuilder,
+  ) {
+    if (!where.conditions || where.conditions.length === 0) {
+      return ""
+    }
+
+    const buildCondition = (
+      condition: ExpressionNode | FilterNode,
+      parentOperator?: string,
+    ): string => {
+      if (condition.type === "filter") {
+        const nestedConditions = condition.conditions
+          .map((nestedCondition) =>
+            buildCondition(nestedCondition, condition.operator),
+          )
+          .join(` ${condition.operator} `)
+
+        // Add parentheses only if the nested operator differs from the parent operator
+        if (parentOperator && parentOperator !== condition.operator) {
+          return `(${nestedConditions})`
+        }
+
+        return nestedConditions
+      } else {
+        return expressionBuilder.buildExpression(condition as ExpressionNode)
+      }
+    }
+
+    const whereClause = where.conditions
+      .map((condition) => buildCondition(condition, where.operator))
+      .join(` ${where.operator} `)
+
+    return `WHERE ${whereClause}`
+  }
+
+  private buildGroupByClause(_groupBy: GroupByNode | string | string[]) {
+    const normalizedGroupBy = groupBy(_groupBy)
+    return `GROUP BY ${normalizedGroupBy.columns.join(", ")}`
   }
 
   private buildHavingClause(
     having: FilterNode,
     buildExpression: (expr: ExpressionNode) => string,
-  ) {
-    return `HAVING ${buildExpression(having.conditions[0])}`
+  ): string {
+    if (!having.conditions || having.conditions.length === 0) {
+      return ""
+    }
+
+    const buildCondition = (condition: ExpressionNode | FilterNode): string => {
+      if (condition.type === "filter") {
+        const nestedConditions = condition.conditions
+          .map((nestedCondition) => buildCondition(nestedCondition))
+          .join(` ${condition.operator} `)
+
+        return `(${nestedConditions})`
+      } else {
+        return buildExpression(condition as ExpressionNode)
+      }
+    }
+
+    const havingClause = having.conditions
+      .map((condition) => buildCondition(condition))
+      .join(` ${having.operator} `)
+
+    return `HAVING ${havingClause}`
   }
 
   private buildOrderByClause(orderBy: OrderByNode[]) {
-    return `ORDER BY ${orderBy.map((o) => `${o.column} ${o.direction}`).join(", ")}`
+    return `ORDER BY ${orderBy
+      .map((o) => `${o.column} ${o.direction}`)
+      .join(", ")}`
   }
 
   private buildLimitClause(limit: number) {

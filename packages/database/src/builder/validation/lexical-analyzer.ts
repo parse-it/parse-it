@@ -1,6 +1,7 @@
-import { QueryNode } from "../types"
-import { ValidationRule } from "./mode"
-import { traverseExpression } from "./util"
+import { ExpressionNode, FilterNode, QueryNode } from "../../types"
+import { select } from "../helper"
+import { ValidationRule } from "../mode"
+import { traverseExpression } from "../util"
 import { ValidationError } from "./validation.error"
 
 export class LexicalAnalyzer implements ValidationRule {
@@ -162,9 +163,10 @@ function validateReservedKeywords(
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
-  query.selects.forEach((select) => {
-    if (select.expression == null) return
-    traverseExpression(select.expression, (operand) => {
+  query.selects.forEach((selectNode) => {
+    const normalizedSelect = select(selectNode)[0]
+    if (normalizedSelect.expression == null) return
+    traverseExpression(normalizedSelect.expression, (operand) => {
       if (
         typeof operand === "string" &&
         reservedKeywords.includes(operand.toUpperCase())
@@ -189,9 +191,11 @@ function validateOperators(
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
-  ;(query.where?.conditions || []).forEach((condition) => {
-    if (condition === null) return
-    traverseExpression(condition, (operand, operator) => {
+  const traverseCondition = (condition: ExpressionNode | FilterNode) => {
+    if (condition.type === "filter") {
+      condition.conditions.forEach(traverseCondition)
+    } else if (condition.type === "expression") {
+      const { operator } = condition
       if (operator && !validOperators.includes(operator)) {
         errors.push(
           new ValidationError(
@@ -201,8 +205,9 @@ function validateOperators(
           ),
         )
       }
-    })
-  })
+    }
+  }
+  query.where?.conditions.forEach(traverseCondition)
 
   return errors
 }

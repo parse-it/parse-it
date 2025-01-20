@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/@parse-it%2Fdatabase.svg)](https://badge.fury.io/js/@parse-it%2Fdatabase)
 [![Build Status](https://github.com/parse-it/parse-it/actions/workflows/release.yml/badge.svg)](https://github.com/parse-it/parse-it/actions)
 
-A simple query builder for TypeScript, designed to work with BigQuery and PostgresSQL.
+A 2-way query builder and SQL parser for TypeScript, designed to work with BigQuery and PostgresSQL.
 
 ## Table of Contents
 

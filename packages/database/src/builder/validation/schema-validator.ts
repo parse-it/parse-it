@@ -1,24 +1,27 @@
 import {
   ExpressionNode,
+  FilterNode,
   QueryNode,
   SelectNode,
   SubQueryNode,
   TableNode,
-} from "../types"
-import { Schema, ValidationRule } from "./mode"
-import { checkIsFromTable } from "./util"
+} from "../../types"
+import { from, select } from "../helper"
+import { Schema, ValidationRule } from "../mode"
+import { checkIsFromTable } from "../util"
 import { ValidationError } from "./validation.error"
 
 export class SchemaValidator implements ValidationRule {
   validate(query: QueryNode, schema?: Schema): ValidationError[] {
-    if (!schema || !checkIsFromTable(query.from)) return []
-    const tableSchema = schema[query.from.name]
+    const fromNode = from(query.from)
+    if (!schema || !checkIsFromTable(fromNode)) return []
+    const tableSchema = schema[fromNode.name]
 
     // Validate table existence
     if (!tableSchema) {
       return [
         new ValidationError(
-          `Table '${query.from.name}' does not exist in the schema.`,
+          `Table '${fromNode.name}' does not exist in the schema.`,
           "FROM",
           "Ensure the table exists in the database.",
         ),
@@ -26,8 +29,8 @@ export class SchemaValidator implements ValidationRule {
     }
 
     return [
-      ...validateColumnExistenceInSchema(query as QueryNode, tableSchema),
-      ...validateColumnExistenceInWhere(query as QueryNode, tableSchema),
+      ...validateColumnExistenceInSchema(query, tableSchema),
+      ...validateColumnExistenceInWhere(query, tableSchema),
     ]
   }
 }
@@ -36,6 +39,7 @@ function validateColumnExistenceInSchema(
   query: QueryNode,
   columns: Schema[string],
 ): ValidationError[] {
+  const fromNode = from(query.from)
   const errors: ValidationError[] = []
 
   function validateSelectNode(
@@ -59,11 +63,11 @@ function validateColumnExistenceInSchema(
     }
   }
 
-  query.selects.forEach((select) => {
-    if (query.from.type === "table") {
-      validateSelectNode(select, query.from)
-    } else if (query.from.type === "subquery") {
-      validateColumnExistenceInSchema(query.from.query, columns)
+  query.selects.forEach((selectNode) => {
+    if (fromNode.type === "table") {
+      validateSelectNode(select(selectNode)[0], fromNode)
+    } else if (fromNode.type === "subquery") {
+      validateColumnExistenceInSchema(fromNode.query, columns)
     }
   })
 
@@ -72,7 +76,7 @@ function validateColumnExistenceInSchema(
 
 function validateColumnExistenceInWhere(
   query: QueryNode,
-  columns: Schema[string],
+  columns: string[],
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
@@ -81,8 +85,9 @@ function validateColumnExistenceInWhere(
     from: TableNode | SubQueryNode,
   ): void {
     if (typeof expression.left === "string") {
+      // Validate column existence in the table or schema
       if (!columns.includes(expression.left)) {
-        if (!checkIsFromTable(from)) return
+        if (from.type !== "table") return // Skip validation for subqueries
         errors.push(
           new ValidationError(
             `Column '${expression.left}' does not exist in table '${from.name}'.`,
@@ -92,6 +97,7 @@ function validateColumnExistenceInWhere(
         )
       }
     } else if (typeof expression.left === "object") {
+      // Recursively validate nested expressions
       validateExpressionNode(expression.left, from)
     }
 
@@ -105,12 +111,26 @@ function validateColumnExistenceInWhere(
     }
   }
 
+  function validateCondition(
+    condition: ExpressionNode | FilterNode,
+    from: TableNode | SubQueryNode,
+  ): void {
+    if (condition.type === "filter") {
+      condition.conditions.forEach((nestedCondition) =>
+        validateCondition(nestedCondition, from),
+      )
+    } else if (condition.type === "expression") {
+      validateExpressionNode(condition, from)
+    }
+  }
+
+  const fromNode = from(query.from)
   if (query.where?.conditions) {
-    query.where.conditions.forEach((filter) => {
-      if (query.from.type === "table") {
-        validateExpressionNode(filter, query.from)
-      } else if (query.from.type === "subquery") {
-        validateColumnExistenceInWhere(query.from.query, columns)
+    query.where.conditions.forEach((condition) => {
+      if (fromNode.type === "table") {
+        validateCondition(condition, fromNode)
+      } else if (fromNode.type === "subquery") {
+        validateColumnExistenceInWhere(fromNode.query, columns)
       }
     })
   }
