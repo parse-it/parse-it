@@ -151,7 +151,7 @@ export class LexicalAnalyzer implements ValidationRule {
 
   validate(query: QueryNode): ValidationError[] {
     return [
-      // ...validateReservedKeywords(query, this.reservedKeywords),
+      ...validateReservedKeywords(query, this.reservedKeywords),
       ...validateOperators(query, this.validOperators),
     ]
   }
