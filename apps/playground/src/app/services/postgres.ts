@@ -29,3 +29,26 @@ export async function getUserCount() {
   const res = await PostgresClient.query("SELECT COUNT(*) FROM users")
   return res[0].count
 }
+
+export async function getDatabaseSchema() {
+  const schemaQuery = `
+    SELECT 
+      t.table_name,
+      c.column_name,
+      c.data_type,
+      c.is_nullable,
+      c.column_default,
+      c.character_maximum_length
+    FROM 
+      information_schema.tables t
+      JOIN information_schema.columns c ON t.table_name = c.table_name
+    WHERE 
+      t.table_schema = 'public'
+    ORDER BY 
+      t.table_name,
+      c.ordinal_position;
+  `
+  const schemaRes = await PostgresClient.query(schemaQuery)
+
+  return schemaRes
+}

@@ -31,11 +31,19 @@ function Form() {
   async function handleSubmit(formData: FormData) {
     const query = formData.get("query") as string
     const res = await executeQuery(query)
+    console.log(res)
     setResult(JSON.stringify(res, null, 2))
   }
 
   return (
-    <form action={handleSubmit}>
+    <form
+      action={handleSubmit}
+      onSubmit={(e) => {
+        // Prevents form from being cleared
+        e.preventDefault()
+        handleSubmit(new FormData(e.currentTarget))
+      }}
+    >
       <CardContent>
         <Textarea
           name="query"

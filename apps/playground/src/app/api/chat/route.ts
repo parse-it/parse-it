@@ -1,6 +1,7 @@
 import { CoreMessage, streamText, tool } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { executeSql, schema, sqlExecutionSchema } from "@/lib/database"
+import { queryPostgres } from "@/app/services/postgres"
 
 /**
  * TODO: Replace with more sophisticated langgraph-based approach
