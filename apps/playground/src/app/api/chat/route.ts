@@ -2,6 +2,12 @@ import { CoreMessage, streamText, tool } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { executeSql, schema, sqlExecutionSchema } from "@/lib/database"
 import { getSchemaString, queryPostgres } from "@/app/services/postgres"
+import {
+  parseBigQuery,
+  ASTMapper,
+  QueryBuilder,
+  QueryBuilderMode,
+} from "@parse-it/database"
 
 /**
  * TODO: Replace with more sophisticated langgraph-based approach
@@ -38,7 +44,18 @@ const executeSqlTool = tool({
   parameters: sqlExecutionSchema,
   execute: async ({ sql }) => {
     console.log("executeSqlTool", { sql })
-    const queryRes = await queryPostgres(sql)
+    const parsed = parseBigQuery(sql)
+
+    const ast = new ASTMapper().map(parsed)
+
+    const { query, parameters } = new QueryBuilder(
+      QueryBuilderMode.SIMPLE,
+    ).build(ast)
+    console.log({ query, parameters })
+
+    const queryRes = await queryPostgres({
+      query,
+    })
     console.log({ queryRes })
 
     return queryRes

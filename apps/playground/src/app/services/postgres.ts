@@ -3,6 +3,11 @@
 import { Pool } from "pg"
 import { json2csv } from "json-2-csv"
 
+interface QueryReq {
+  query: string
+  values?: any[]
+}
+
 class PostgresClient {
   private static client: Pool
 
@@ -20,9 +25,10 @@ class PostgresClient {
 /**
  * ! This is not secure and 100% for testing purposes only
  */
-export async function queryPostgres(query: string) {
+export async function queryPostgres(queryReq: QueryReq) {
+  const { query: text, values } = queryReq
   const client = PostgresClient.init()
-  const res = await client.query(query)
+  const res = await client.query({ text, values })
   return res.rows
 }
 
