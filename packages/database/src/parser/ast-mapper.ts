@@ -79,7 +79,6 @@ export class ASTMapper {
 
   private mapSelects(columns: Select["columns"]): SelectNode[] {
     if (!Array.isArray(columns)) {
-      console.log(columns, "c")
       throw new Error("Invalid AST structure: 'columns' must be an array.")
     }
 
