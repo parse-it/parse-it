@@ -1,6 +1,7 @@
 "use server"
 
 import { Pool } from "pg"
+import { json2csv } from "json-2-csv"
 
 class PostgresClient {
   private static client: Pool
@@ -30,6 +31,15 @@ export async function getUserCount() {
   return res[0].count
 }
 
+interface TableColumn {
+  table_name: string
+  column_name: string
+  data_type: string
+  is_nullable: "YES" | "NO"
+  column_default: string | null
+  character_maximum_length: number | null
+}
+
 export async function getDatabaseSchema() {
   const schemaQuery = `
     SELECT 
@@ -48,7 +58,13 @@ export async function getDatabaseSchema() {
       t.table_name,
       c.ordinal_position;
   `
-  const schemaRes = await PostgresClient.query(schemaQuery)
+  const schemaRes: TableColumn[] = await PostgresClient.query(schemaQuery)
 
   return schemaRes
+}
+
+export async function getSchemaString() {
+  const schemaRes = await getDatabaseSchema()
+  const csv = json2csv(schemaRes)
+  return csv
 }
