@@ -27,6 +27,11 @@ export class ExpressionBuilder {
     customParamManager?: ParameterManager,
   ): string {
     const currentParamManager = customParamManager || this.paramManager
+
+    if (expr.type === "expression" && typeof expr.left === "string") {
+      return expr.left
+    }
+
     if (this.isSimpleLiteral(expr)) {
       return currentParamManager.addParameter(expr.left)
     }
@@ -54,20 +59,50 @@ export class ExpressionBuilder {
     return (
       (typeof expr.left === "string" || typeof expr.left === "number") &&
       !expr.operator &&
-      !expr.right
+      !expr.right &&
+      expr.type !== "expression"
     )
   }
 
   private buildBinaryExpression(expr: ExpressionNode) {
-    const leftPart = this.buildExpression(expr.left as ExpressionNode)
-    const rightPart = this.buildExpression(expr.right as ExpressionNode)
+    let leftPart: string
+
+    // Handle column references on the left side
+    if (
+      typeof expr.left === "object" &&
+      expr.left.type === "expression" &&
+      typeof expr.left.left === "string"
+    ) {
+      leftPart = expr.left.left
+    } else {
+      leftPart = this.buildExpression(expr.left as ExpressionNode)
+    }
+
+    let rightPart: string
+    // Handle literal values on the right side that should be parameterized
+    if (
+      typeof expr.right === "object" &&
+      expr.right.type === "expression" &&
+      (typeof expr.right.left === "string" ||
+        typeof expr.right.left === "number")
+    ) {
+      rightPart = this.paramManager.addParameter(expr.right.left)
+    } else {
+      rightPart = this.buildExpression(expr.right as ExpressionNode)
+    }
 
     return `${leftPart} ${expr.operator} ${rightPart}`
   }
 
   private buildExpressionValue(expr: ExpressionNode) {
-    return Array.isArray(expr.left)
-      ? valueWrapper(expr.left) + ""
-      : JSON.stringify(expr.left)
+    if (Array.isArray(expr.left)) {
+      return valueWrapper(expr.left) + ""
+    }
+
+    if (typeof expr.left === "string") {
+      return expr.left
+    }
+
+    return this.paramManager.addParameter(expr.left)
   }
 }
