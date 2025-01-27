@@ -75,6 +75,19 @@ export function conditions(
 }
 
 /**
+ * Conditions that are array with empty right values are removed from the list.
+ * @param conditions
+ * @returns
+ */
+export function validConditions(conditions: ExpressionNode[]) {
+  return conditions.filter((condition) =>
+    typeof condition.right == "object" && condition.right.type == "expression"
+      ? condition.right.left != "()"
+      : true,
+  )
+}
+
+/**
  * Constructs a `FilterNode` for the `WHERE` clause from an array of `ExpressionNode`s.
  * @param conditions - Array of `ExpressionNode`s representing the WHERE conditions.
  * @param operator - Boolean operator to use between the top-level conditions ("AND" or "OR").
@@ -84,10 +97,12 @@ export function where(
   conditions: ExpressionNode[] | ExpressionNode,
   operator: "AND" | "OR" = "AND",
 ): FilterNode {
+  conditions = Array.isArray(conditions) ? conditions : [conditions]
+
   return {
     type: "filter",
     operator,
-    conditions: Array.isArray(conditions) ? conditions : [conditions],
+    conditions: validConditions(conditions),
   }
 }
 
@@ -257,9 +272,11 @@ export function updateCondition(
   function traverseAndUpdate(node: ExpressionNode): ExpressionNode {
     if (
       node.type === "expression" &&
+      node.left &&
       typeof node.left === "object" &&
       node.left.type === "expression" &&
       typeof newCondition.left === "object" &&
+      newCondition.left &&
       newCondition.left.type === "expression" &&
       isConditionEqual(node.left, newCondition.left)
     ) {
@@ -267,7 +284,9 @@ export function updateCondition(
       return newCondition
     }
     const updatedLeft =
-      typeof node.left === "object" && node.left.type === "expression"
+      typeof node.left === "object" &&
+      node.left &&
+      node.left.type === "expression"
         ? traverseAndUpdate(node.left)
         : node.left
 

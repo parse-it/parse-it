@@ -70,6 +70,7 @@ export class ExpressionBuilder {
     // Handle column references on the left side
     if (
       typeof expr.left === "object" &&
+      expr.left &&
       expr.left.type === "expression" &&
       typeof expr.left.left === "string"
     ) {

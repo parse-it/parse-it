@@ -15,15 +15,28 @@ export const checkIsFromTable = (
 export function traverseExpression(
   expression: ExpressionNode,
   callback: (
-    operand: string | number | boolean | string[] | ExpressionNode | QueryNode,
+    operand:
+      | string
+      | number
+      | boolean
+      | null
+      | string[]
+      | ExpressionNode
+      | QueryNode,
     operator?: string,
   ) => void,
 ): void {
   if (expression === null) return
-  if (typeof expression.left === "string") {
+  if (
+    typeof expression.left === "string" ||
+    typeof expression.left === "number" ||
+    typeof expression.left === "boolean" ||
+    expression.left === null
+  ) {
     callback(expression.left, expression.operator)
   } else if (
     typeof expression.left === "object" &&
+    expression.left &&
     expression.left.type === "expression"
   ) {
     traverseExpression(expression.left, callback)

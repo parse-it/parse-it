@@ -339,6 +339,7 @@ export class ASTMapper {
               if (
                 typeof condition.left === "object" &&
                 typeof condition.right === "object" &&
+                condition.left &&
                 condition.left.type != "query" &&
                 condition.right.type != "query" &&
                 !Array.isArray(condition.right)
@@ -378,7 +379,7 @@ export class ASTMapper {
           type: "expression",
           left: this.mapExpression(expr.left).left,
           operator: expr.operator, // Typically "IS" or "IS NOT"
-          right: expr.right ? this.mapExpression(expr.right).left : undefined,
+          right: expr.right ? this.mapExpression(expr.right).left! : undefined,
         }
 
       case "aggr_func": // Handles SUM, AVG, etc.

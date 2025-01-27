@@ -160,7 +160,6 @@ describe("updateOrAddCondition", () => {
     }
 
     const result = updateOrAddCondition(baseFilter, updatedCondition)
-
     expect(result.conditions).toHaveLength(1)
     expect(result.conditions[0]).toEqual(updatedCondition)
   })
