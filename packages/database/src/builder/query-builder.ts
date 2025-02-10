@@ -233,12 +233,11 @@ export class QueryBuilder {
     const normalizedSelects = selects.map((s) =>
       typeof s === "string" ? select(s)[0] : s,
     )
-    const paramManager = new ParameterManager(QueryBuilderMode.SIMPLE)
     return normalizedSelects
       .map((select) =>
         select.alias
-          ? `${buildExpression(select.expression, paramManager)} AS ${select.alias}`
-          : buildExpression(select.expression, paramManager),
+          ? `${buildExpression(select.expression)} AS ${select.alias}`
+          : buildExpression(select.expression),
       )
       .join(", ")
   }
