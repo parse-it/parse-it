@@ -15,11 +15,11 @@ import {
 import { expressionHandlers } from "./expression.handler"
 import * as Parser from "../grammar/bigquery.pegjs"
 
-type TableColumnAst = Parser.TableColumnAst
-type AST = Parser.AST
-type Select = Parser.Select
-type Join = Parser.Join
-type BaseFrom = Parser.BaseFrom
+export type TableColumnAst = Parser.TableColumnAst
+export type AST = Parser.AST
+export type Select = Parser.Select
+export type Join = Parser.Join
+export type BaseFrom = Parser.BaseFrom
 
 export class ASTMapper {
   isAST(parsedAST: TableColumnAst | AST | AST[]): parsedAST is AST | AST[] {
