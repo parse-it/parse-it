@@ -6,8 +6,13 @@ import { ExpressionNode, FilterNode } from "../../types"
  * @returns Wrapped value.
  */
 export function valueWrapper(
-  value: string | number | null | (string | number | null)[],
-): string | number | null {
+  value:
+    | string
+    | number
+    | null
+    | boolean
+    | (string | number | boolean | null)[],
+): string | number | null | boolean {
   if (Array.isArray(value)) {
     return `(${value.map(valueWrapper).join(",")})`
   }
@@ -27,7 +32,7 @@ export function conditions(
   conditions: {
     column: string
     operator: string
-    value: string | number | string[] | number[] | null
+    value: string | number | string[] | number[] | null | boolean
   }[],
   booleanOperator: string = "AND",
 ): ExpressionNode {

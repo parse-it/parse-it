@@ -1,6 +1,7 @@
 {
   "name": "@parse-it/db-client",
   "version": "0.0.0",
+  "private": true,
   "description": "DB clients for parse-it",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

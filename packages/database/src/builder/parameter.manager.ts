@@ -53,9 +53,10 @@ export class ParameterManager {
       return `@${paramName}`
     }
 
-    ;(this.parameters as any[]).push(value)
+    //@TODO: Add support for Values with binary expressions like AND/OR in the value
+    ;(this.parameters as any[]).push(value) // need to happen n times
     this.paramIndex++
-    return "?"
+    return "?" // ? AND ?
   }
 
   addParameters(values: any[]): string[] {

@@ -1,8 +1,18 @@
-import { GroupByNode, OrderByNode, SubQueryNode, TableNode } from "../../types"
+import {
+  ExpressionNode,
+  FilterNode,
+  GroupByNode,
+  JoinNode,
+  OrderByNode,
+  QueryNode,
+  SubQueryNode,
+  TableNode,
+} from "../../types"
 
 export * from "./join"
 export * from "./select"
 export * from "./where"
+export * from "./table"
 
 /**
  *
