@@ -70,3 +70,11 @@ export function applyMaybeClause<T>(
   if (value === null) return builder()
   return builder(value)
 }
+
+export function isSafeIdentifier(identifier: string): boolean {
+  const functionPattern =
+    /^[a-zA-Z_][a-zA-Z0-9_]*\s*\(([^;'"`()]|(\([^()]*\)))*\)$/
+  const simpleIdentifier = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
+  return simpleIdentifier.test(identifier) || functionPattern.test(identifier)
+}

@@ -14,7 +14,7 @@ import { ExpressionBuilder } from "./expression-builder"
 import { groupBy, select } from "./helper"
 import { Schema } from "./mode"
 import { ParameterManager, QueryBuilderMode } from "./parameter.manager"
-import { applyMaybeClause, checkIsFromTable } from "./util"
+import { applyMaybeClause, checkIsFromTable, isSafeIdentifier } from "./util"
 import { LexicalAnalyzer } from "./validation/lexical-analyzer"
 import { SchemaValidator } from "./validation/schema-validator"
 import { SyntaxAnalyzer } from "./validation/syntax-analyzer"
@@ -234,9 +234,9 @@ export class QueryBuilder {
       typeof s === "string" ? select(s)[0] : s,
     )
     return normalizedSelects
-      .map((select) =>
+      .map((select, index) =>
         select.alias
-          ? `${buildExpression(select.expression)} AS ${select.alias}`
+          ? `${buildExpression(select.expression)} AS ${isSafeIdentifier(select.alias) ? select.alias : "alias_" + index} `
           : buildExpression(select.expression),
       )
       .join(", ")
