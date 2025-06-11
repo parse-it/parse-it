@@ -74,7 +74,91 @@ export function applyMaybeClause<T>(
 export function isSafeIdentifier(identifier: string): boolean {
   const functionPattern =
     /^[a-zA-Z_][a-zA-Z0-9_]*\s*\(([^;'"`()]|(\([^()]*\)))*\)$/
-  const simpleIdentifier = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+  const simpleIdentifier = /^[a-zA-Z_][a-zA-Z0-9_.]*$/
 
   return simpleIdentifier.test(identifier) || functionPattern.test(identifier)
+}
+export function isSafeExpressionIdentifier(value: string): boolean {
+  const forbidden =
+    /['";`]|--|\b(SELECT|DROP|INSERT|UPDATE|DELETE|EXEC|UNION|CREATE|ALTER|GRANT|REPLACE|TRUNCATE)\b/i
+  if (forbidden.test(value)) return false
+  if (value === "*") return false
+  const identifier =
+    /^([a-zA-Z_][a-zA-Z0-9_]*|\`[a-zA-Z0-9_.$]+\`)(\.([a-zA-Z_][a-zA-Z0-9_]*|\`[a-zA-Z0-9_.$]+\`))*$/
+  if (identifier.test(value)) return true
+
+  // Allow JSON_EXTRACT(json_field, '$.path') and similar functions
+  const basicFunctionCall =
+    /^[A-Z_][A-Z0-9_]*\s*$begin:math:text$.*$end:math:text$$/i
+  const approvedFunctions = [
+    "COUNT",
+    "MAX",
+    "MIN",
+    "AVG",
+    "SUM",
+    "DATE",
+    "CAST",
+    "COALESCE",
+    "JSON_EXTRACT",
+    "JSON_VALUE",
+    "ROUND",
+    "TRIM",
+    "LOWER",
+    "UPPER",
+    "CASE",
+    "WHEN",
+  ]
+  const functionNameMatch = value.match(/^([A-Z_][A-Z0-9_]*)\s*\(/i)
+
+  if (basicFunctionCall.test(value) && functionNameMatch) {
+    const fn = functionNameMatch[1].toUpperCase()
+    return approvedFunctions.includes(fn)
+  }
+
+  return false
+}
+
+export function isSafeExpressionANDQueryIdentifier(
+  initialQuery: string,
+): boolean {
+  const unsafePatterns = [
+    /;/,
+    /--/,
+    /\/\*/,
+    /\*\//,
+    /@@/,
+    /char\s*\(/i,
+    /nchar\s*\(/i,
+    /varchar\s*\(/i,
+    /nvarchar\s*\(/i,
+    /cast\s*\(/i,
+    /convert\s*\(/i,
+    /exec\s+/i,
+    /execute\s+/i,
+    /\bunion\b/i,
+    /\bdrop\b/i,
+    /\binsert\b/i,
+    /\bdelete\b/i,
+    /\bupdate\b/i,
+    /\bcreate\b/i,
+    /\balter\b/i,
+    /\bshutdown\b/i,
+    /\bmerge\b/i,
+    /\btruncate\b/i,
+    /\bdeclare\b/i,
+    /\bset\b/i,
+    /\bbegin\b/i,
+    /\bif\b/i,
+    /\bwhile\b/i,
+    /\bloop\b/i,
+    /\bexecute\s+immediate\b/i,
+    /\bcreate\s+temp\s+function\b/i,
+    /\bcreate\s+(or\s+replace\s+)?(table|view|model|function)\b/i,
+    /\bdrop\s+(table|view|model|function)\b/i,
+    /`[^`]*`/,
+    /\$\w+/,
+    /['"`]\s*;\s*\bselect\b/i,
+  ]
+
+  return !unsafePatterns.some((p) => p.test(initialQuery.toLocaleLowerCase()))
 }
