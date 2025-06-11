@@ -1,18 +1,13 @@
 import { ExpressionNode, FilterNode } from "../../types"
 
+type ScalarType = string | number | null | boolean
+
 /**
  * Wraps a value in quotes if it is a string or an array.
  * @param value - Value to wrap.
  * @returns Wrapped value.
  */
-export function valueWrapper(
-  value:
-    | string
-    | number
-    | null
-    | boolean
-    | (string | number | boolean | null)[],
-): string | number | null | boolean {
+export function valueWrapper(value: ScalarType | ScalarType[]): ScalarType {
   if (Array.isArray(value)) {
     return `(${value.map(valueWrapper).join(",")})`
   }
@@ -32,7 +27,7 @@ export function conditions(
   conditions: {
     column: string
     operator: string
-    value: string | number | string[] | number[] | null | boolean
+    value: ScalarType
   }[],
   booleanOperator: string = "AND",
 ): ExpressionNode {

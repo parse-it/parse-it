@@ -1,6 +1,7 @@
 import { ExpressionNode } from "../types"
 import { valueWrapper } from "./helper"
 import { ParameterManager } from "./parameter.manager"
+import { isSafeExpressionIdentifier, isSafeIdentifier } from "./util"
 
 /**
  * Handles the construction and management of SQL expressions.
@@ -29,6 +30,9 @@ export class ExpressionBuilder {
     const currentParamManager = customParamManager || this.paramManager
 
     if (expr.type === "expression" && typeof expr.left === "string") {
+      if (!isSafeExpressionIdentifier(expr.left)) {
+        throw new Error(`Unsafe identifier or expression: ${expr.left}`)
+      }
       return expr.left
     }
 

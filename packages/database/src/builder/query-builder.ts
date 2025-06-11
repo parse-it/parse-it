@@ -14,12 +14,11 @@ import { ExpressionBuilder } from "./expression-builder"
 import { groupBy, select } from "./helper"
 import { Schema } from "./mode"
 import { ParameterManager, QueryBuilderMode } from "./parameter.manager"
-import { applyMaybeClause, checkIsFromTable } from "./util"
+import { applyMaybeClause, checkIsFromTable, isSafeIdentifier } from "./util"
 import { LexicalAnalyzer } from "./validation/lexical-analyzer"
 import { SchemaValidator } from "./validation/schema-validator"
 import { SyntaxAnalyzer } from "./validation/syntax-analyzer"
 import { ValidationPipeline } from "./validation/validation-pipeline"
-
 /**
  * Represents the result of a query building operation.
  *
@@ -234,25 +233,54 @@ export class QueryBuilder {
       typeof s === "string" ? select(s)[0] : s,
     )
     return normalizedSelects
-      .map((select) =>
+      .map((select, index) =>
         select.alias
-          ? `${buildExpression(select.expression)} AS ${select.alias}`
+          ? `${buildExpression(select.expression)} AS ${isSafeIdentifier(select.alias) ? select.alias : "alias_" + index} `
           : buildExpression(select.expression),
       )
       .join(", ")
   }
 
   private buildFromClause(fromNode: TableNode | SubQueryNode | string) {
+    if (typeof fromNode === "string") {
+      const parts = fromNode.trim().split(/\s+as\s+/i)
+
+      if (parts.length > 2) {
+        throw new Error(`Invalid 'from' format: too many 'AS' clauses`)
+      }
+
+      const [rawName, rawAlias] = parts
+      if (!isSafeIdentifier(rawName)) {
+        throw new Error(`Unsafe table name: "${rawName}"`)
+      }
+
+      if (rawAlias && !isSafeIdentifier(rawAlias)) {
+        throw new Error(`Unsafe alias: "${rawAlias}"`)
+      }
+
+      fromNode = {
+        type: "table",
+        name: rawName,
+        alias: rawAlias,
+      } satisfies TableNode
+    }
     const from =
       typeof fromNode === "string"
         ? ({ type: "table", name: fromNode } as TableNode)
         : fromNode
 
-    return checkIsFromTable(from)
-      ? `FROM ${from.name}${from.alias ? ` AS ${from.alias}` : ""}`
-      : `FROM (${this.build(from.query).query})${
-          from.alias ? ` AS ${from.alias}` : ""
-        }`
+    if (checkIsFromTable(from)) {
+      const tableName = isSafeIdentifier(from.name)
+        ? from.name
+        : `"invalid_table"`
+      return `FROM ${tableName}${from.alias ? ` AS ${isSafeIdentifier(from.alias) ? from.alias : "alias_invalid"}` : ""}`
+    } else {
+      return `FROM (${this.build(from.query).query})${
+        from.alias
+          ? ` AS ${isSafeIdentifier(from.alias) ? from.alias : "alias_invalid"}`
+          : ""
+      }`
+    }
   }
 
   private buildJoinClause(
@@ -343,7 +371,7 @@ export class QueryBuilder {
 
   private buildGroupByClause(_groupBy: GroupByNode | string | string[]) {
     const normalizedGroupBy = groupBy(_groupBy)
-    return `GROUP BY ${normalizedGroupBy.columns.join(", ")}`
+    return `GROUP BY ${normalizedGroupBy.columns.filter(isSafeIdentifier).join(", ")}`
   }
 
   private buildHavingClause(
@@ -375,7 +403,10 @@ export class QueryBuilder {
 
   private buildOrderByClause(orderBy: OrderByNode[]) {
     return `ORDER BY ${orderBy
-      .map((o) => `${o.column} ${o.direction}`)
+      .map(
+        (o) =>
+          `${isSafeIdentifier(o.column) ? o.column : "invalid_column"} ${o.direction}`,
+      )
       .join(", ")}`
   }
 

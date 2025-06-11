@@ -74,4 +74,5 @@ export type ExpressionNode = {
   left: string | number | boolean | null | ExpressionNode | QueryNode
   operator?: string
   right?: string | number | boolean | ExpressionNode | QueryNode
+  parenthesis?: boolean
 }
