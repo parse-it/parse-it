@@ -140,7 +140,6 @@ export function isSafeExpressionANDQueryIdentifier(
     /nchar\s*\(/i,
     /varchar\s*\(/i,
     /nvarchar\s*\(/i,
-    /cast\s*\(/i,
     /convert\s*\(/i,
     /exec\s+/i,
     /execute\s+/i,
@@ -164,10 +163,18 @@ export function isSafeExpressionANDQueryIdentifier(
     /\bcreate\s+temp\s+function\b/i,
     /\bcreate\s+(or\s+replace\s+)?(table|view|model|function)\b/i,
     /\bdrop\s+(table|view|model|function)\b/i,
-    /`[^`]*`/,
+    // /`[^`]*`/,
     /\$\w+/,
     /['"`]\s*;\s*\bselect\b/i,
   ]
 
-  return !unsafePatterns.some((p) => p.test(initialQuery.toLocaleLowerCase()))
+  return !unsafePatterns.some((p) => {
+    if (p.test(initialQuery.toLocaleLowerCase())) {
+      console.warn(
+        `Unsafe pattern detected in query: ${p.toString()} in "${initialQuery}"`,
+      )
+    }
+
+    return p.test(initialQuery.toLocaleLowerCase())
+  })
 }

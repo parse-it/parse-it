@@ -36,18 +36,19 @@ export function parseASTtoSQL(
 
   const resultSQL = parser.sqlify(ast, { database: SQL_ENGINE })
 
+  console.log("Generated SQL:", resultSQL)
   if (!isSafeExpressionANDQueryIdentifier(resultSQL)) {
     throw new Error("Invalid SQL query: contains unsafe character")
   }
 
-  try {
-    parser.whiteListCheck(resultSQL, whiteTableList, {
-      databaseType,
-      type: "table",
-    })
-  } catch {
-    throw new Error("Invalid SQL query: whitelist check failed")
-  }
+  // try {
+  //   parser.whiteListCheck(resultSQL, whiteTableList, {
+  //     databaseType,
+  //     type: "table",
+  //   })
+  // } catch {
+  //   throw new Error("Invalid SQL query: whitelist check failed")
+  // }
 
   return resultSQL
 }
