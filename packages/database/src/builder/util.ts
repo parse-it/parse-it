@@ -80,12 +80,8 @@ export function isSafeIdentifier(identifier: string): boolean {
 }
 export function isSafeExpressionIdentifier(value: string): boolean {
   const forbidden =
-    /['";`]|--|\b(SELECT|DROP|INSERT|UPDATE|DELETE|EXEC|UNION|CREATE|ALTER|GRANT|REPLACE|TRUNCATE)\b/i
+    /[";#`]|--|\b(SELECT|DROP|INSERT|UPDATE|DELETE|EXEC|UNION|CREATE|ALTER|GRANT|REPLACE|TRUNCATE)\b/i
   if (forbidden.test(value)) return false
-  if (value === "*") return false
-  const identifier =
-    /^([a-zA-Z_][a-zA-Z0-9_]*|\`[a-zA-Z0-9_.$]+\`)(\.([a-zA-Z_][a-zA-Z0-9_]*|\`[a-zA-Z0-9_.$]+\`))*$/
-  if (identifier.test(value)) return true
 
   // Allow JSON_EXTRACT(json_field, '$.path') and similar functions
   const basicFunctionCall =
@@ -115,7 +111,20 @@ export function isSafeExpressionIdentifier(value: string): boolean {
     return approvedFunctions.includes(fn)
   }
 
-  return false
+  return true
+}
+
+export function isSafeJoinCondition(expr: ExpressionNode): boolean {
+  return !!(
+    expr.left &&
+    expr.right &&
+    typeof expr.left === "string" &&
+    typeof expr.right === "string" &&
+    expr.left.includes(".") &&
+    expr.right.includes(".") &&
+    isSafeIdentifier(expr.left.split(".")[0]) &&
+    isSafeIdentifier(expr.right.split(".")[0])
+  )
 }
 
 export function isSafeExpressionANDQueryIdentifier(

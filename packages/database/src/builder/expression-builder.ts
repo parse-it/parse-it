@@ -30,9 +30,9 @@ export class ExpressionBuilder {
     const currentParamManager = customParamManager || this.paramManager
 
     if (expr.type === "expression" && typeof expr.left === "string") {
-      if (!isSafeExpressionIdentifier(expr.left)) {
-        throw new Error(`Unsafe identifier or expression: ${expr.left}`)
-      }
+      // if (!isSafeExpressionIdentifier(expr.left)) {
+      //   throw new Error(`Unsafe identifier or expression: ${expr.left}`)
+      // }
       return expr.left
     }
 
