@@ -15,7 +15,9 @@ export class SchemaValidator implements ValidationRule {
   validate(query: QueryNode, schema?: Schema): ValidationError[] {
     const fromNode = from(query.from)
     if (!schema || !checkIsFromTable(fromNode)) return []
-    const tableSchema = schema[fromNode.name]
+    const parts = fromNode.name.split(/\s+as\s+/i)
+    const actualTableName = parts[0]
+    const tableSchema = schema[actualTableName]
 
     // Validate table existence
     if (!tableSchema) {
