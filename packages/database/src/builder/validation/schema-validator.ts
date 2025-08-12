@@ -15,7 +15,9 @@ export class SchemaValidator implements ValidationRule {
   validate(query: QueryNode, schema?: Schema): ValidationError[] {
     const fromNode = from(query.from)
     if (!schema || !checkIsFromTable(fromNode)) return []
-    const tableSchema = schema[fromNode.name]
+    const parts = fromNode.name.split(/\s+as\s+/i)
+    const actualTableName = parts[0]
+    const tableSchema = schema[actualTableName]
 
     // Validate table existence
     if (!tableSchema) {
@@ -29,10 +31,53 @@ export class SchemaValidator implements ValidationRule {
     }
 
     return [
-      ...validateColumnExistenceInSchema(query, tableSchema),
-      ...validateColumnExistenceInWhere(query, tableSchema),
+      // ...validateColumnExistenceInSchema(query, tableSchema),
+      // ...validateColumnExistenceInWhere(query, tableSchema),
+      ...validateJoinConditions(query, schema),
     ]
   }
+}
+
+function validateJoinConditions(
+  query: QueryNode,
+  schema?: Schema,
+): ValidationError[] {
+  if (!query.joins || !schema) return []
+
+  const errors: ValidationError[] = []
+  for (const join of query.joins) {
+    const table = join.table
+    const tableName = checkIsFromTable(table) ? table.name : undefined
+    const tableSchema = tableName ? schema[tableName] : undefined
+    if (!tableSchema) continue
+
+    if (join.on.type === "expression") {
+      const { left, right } = join.on
+
+      const isSafeSide = (side: any): boolean => {
+        if (typeof side.left === "string") {
+          const [tbl, col] = side.left.split(".")
+          return !!(tbl && col)
+        }
+        return false
+      }
+
+      const leftIsColumn = isSafeSide(left)
+      const rightIsColumn = isSafeSide(right)
+
+      if (!leftIsColumn && !rightIsColumn) {
+        errors.push(
+          new ValidationError(
+            `JOIN condition must reference at least one column from a valid table. Found: ${JSON.stringify(join.on)}`,
+            "JOIN",
+            "Ensure the JOIN ... ON clause contains at least one valid table.column reference.",
+          ),
+        )
+      }
+    }
+  }
+
+  return errors
 }
 
 function validateColumnExistenceInSchema(
