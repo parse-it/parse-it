@@ -35,8 +35,6 @@ export function parseASTtoSQL(
   ensureSupportedDB(databaseType)
 
   const resultSQL = parser.sqlify(ast, { database: SQL_ENGINE })
-
-  console.log("Generated SQL:", resultSQL)
   if (!isSafeExpressionANDQueryIdentifier(resultSQL)) {
     throw new Error("Invalid SQL query: contains unsafe character")
   }
